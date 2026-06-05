@@ -11,3 +11,4 @@ sse-starlette==2.2.1
 python-multipart==0.0.20
 asyncpg==0.30.0
 greenlet==3.1.1
+aiortc==1.14.0

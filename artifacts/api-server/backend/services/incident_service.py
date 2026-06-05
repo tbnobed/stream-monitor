@@ -103,11 +103,6 @@ async def _manage_incident(
 
     elif not is_bad and was_bad:
         # Close open incident
-        open_inc = db.query(Incident).filter(
-            Incident.status == "open",
-            **{f"Incident.{k}": v for k, v in filter_kwargs.items()},
-        ).first()
-        # Use proper filter
         q = db.query(Incident).filter(Incident.status == "open")
         if item_type == "device":
             q = q.filter(Incident.device_id == item_id)

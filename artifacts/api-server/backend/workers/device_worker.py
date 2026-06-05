@@ -1,8 +1,4 @@
 import asyncio
-import subprocess
-import re
-import os
-import tempfile
 from datetime import datetime
 from sqlalchemy.orm import Session
 from database import SessionLocal
@@ -11,9 +7,20 @@ from services.incident_service import handle_status_change
 import httpx
 import logging
 
+from aiortc import RTCPeerConnection, RTCSessionDescription, RTCConfiguration
+
 logger = logging.getLogger(__name__)
 
-ffmpeg_semaphore = asyncio.Semaphore(4)
+# aiortc/aioice are extremely chatty (per-ICE-candidate and per-undecodable-H264
+# packet); silence the noise so worker logs stay readable.
+for _noisy in ("aioice.ice", "aiortc.codecs.h264", "aiortc.rtcrtpreceiver"):
+    logging.getLogger(_noisy).setLevel(logging.ERROR)
+
+# Limit concurrent WHEP media probes to avoid resource exhaustion.
+probe_semaphore = asyncio.Semaphore(4)
+
+# A stream is considered loading once this many decoded media frames arrive.
+FRAME_THRESHOLD = 3
 
 
 def get_setting(db: Session, key: str, default: str) -> str:
@@ -21,152 +28,123 @@ def get_setting(db: Session, key: str, default: str) -> str:
     return s.value if s else default
 
 
-async def check_srs_publisher(srs_api_base: str, srs_app: str, stream_key: str) -> bool:
-    """Check if the stream has an active publisher via SRS API."""
-    try:
-        url = f"{srs_api_base}/streams/"
-        async with httpx.AsyncClient(timeout=5) as client:
-            resp = await client.get(url)
-            if resp.status_code != 200:
-                return False
-            data = resp.json()
-            streams = data.get("streams", [])
-            for s in streams:
-                if s.get("app") == srs_app and s.get("name") == stream_key:
-                    clients = s.get("clients", 0)
-                    publish = s.get("publish", {})
-                    if publish.get("active", False) or clients > 0:
-                        return True
-            return False
-    except Exception as e:
-        logger.warning(f"SRS API check failed: {e}")
-        return False
+async def probe_whep(whep_base: str, app: str, stream_key: str, timeout: float = 8.0) -> dict:
+    """Open a real WebRTC (WHEP) connection to SRS and confirm media is flowing.
 
+    SRS returns 201 for the signaling handshake even when a stream does not
+    exist, so the only reliable health signal is whether decoded media frames
+    actually arrive. Returns a detail dict with the outcome.
+    """
+    async with probe_semaphore:
+        pc = RTCPeerConnection(RTCConfiguration(iceServers=[]))
+        frames = {"video": 0, "audio": 0}
+        reader_tasks: list[asyncio.Task] = []
 
-async def run_ffmpeg_analysis(rtmp_url: str, timeout: int = 20) -> dict:
-    """Run ffmpeg to detect black/frozen/silent frames."""
-    async with ffmpeg_semaphore:
-        vf = "blackdetect=d=2:pix_th=0.10,freezedetect=n=-60dB:d=2"
-        af = "silencedetect=n=-50dB:d=3"
-        cmd = [
-            "ffmpeg", "-hide_banner",
-            "-i", rtmp_url,
-            "-t", "10",
-            "-vf", vf,
-            "-af", af,
-            "-f", "null", "-",
-        ]
+        @pc.on("track")
+        def on_track(track):
+            async def reader():
+                while True:
+                    try:
+                        await track.recv()
+                        frames[track.kind] += 1
+                    except Exception:
+                        break
+            reader_tasks.append(asyncio.ensure_future(reader()))
+
+        detail: dict = {"whep_url": f"{whep_base}/rtc/v1/whep/?app={app}&stream={stream_key}"}
         try:
-            proc = await asyncio.wait_for(
-                asyncio.create_subprocess_exec(
-                    *cmd,
-                    stdout=asyncio.subprocess.PIPE,
-                    stderr=asyncio.subprocess.PIPE,
-                ),
-                timeout=timeout,
+            pc.addTransceiver("video", direction="recvonly")
+            pc.addTransceiver("audio", direction="recvonly")
+            await pc.setLocalDescription(await pc.createOffer())
+
+            url = f"{whep_base}/rtc/v1/whep/?app={app}&stream={stream_key}"
+            answer_sdp = None
+            http_status = None
+            async with httpx.AsyncClient(timeout=6) as client:
+                # SRS may edge-pull on the first request and return a transient
+                # 502; retry once before giving up. Keep the budget small so a
+                # check comfortably fits inside the worker interval.
+                for attempt in range(2):
+                    resp = await client.post(
+                        url,
+                        content=pc.localDescription.sdp,
+                        headers={"Content-Type": "application/sdp"},
+                    )
+                    http_status = resp.status_code
+                    if resp.status_code in (200, 201):
+                        answer_sdp = resp.text
+                        break
+                    await asyncio.sleep(1.5)
+
+            detail["http_status"] = http_status
+            if not answer_sdp:
+                detail["media_flowing"] = False
+                return detail
+
+            await pc.setRemoteDescription(
+                RTCSessionDescription(sdp=answer_sdp, type="answer")
             )
-            try:
-                _, stderr = await asyncio.wait_for(proc.communicate(), timeout=timeout)
-            except asyncio.TimeoutError:
-                proc.kill()
-                return {"error": "ffmpeg timeout"}
 
-            stderr_text = stderr.decode("utf-8", errors="replace")
-            return {
-                "black_detected": "blackdetect" in stderr_text,
-                "freeze_detected": "freezedetect" in stderr_text,
-                "silence_detected": "silencedetect" in stderr_text and "silence_start" in stderr_text,
-                "stderr_snippet": stderr_text[-500:],
-            }
-        except FileNotFoundError:
-            return {"error": "ffmpeg not found"}
+            loop = asyncio.get_event_loop()
+            deadline = loop.time() + timeout
+            while loop.time() < deadline:
+                if frames["video"] >= FRAME_THRESHOLD or frames["audio"] >= FRAME_THRESHOLD:
+                    break
+                await asyncio.sleep(0.25)
+
+            detail["video_frames"] = frames["video"]
+            detail["audio_frames"] = frames["audio"]
+            detail["ice_state"] = pc.iceConnectionState
+            detail["media_flowing"] = (
+                frames["video"] >= FRAME_THRESHOLD or frames["audio"] >= FRAME_THRESHOLD
+            )
+            return detail
         except Exception as e:
-            return {"error": str(e)}
-
-
-async def capture_frame(rtmp_url: str, output_dir: str = "/tmp/frames") -> str | None:
-    """Capture a JPEG frame from the stream."""
-    os.makedirs(output_dir, exist_ok=True)
-    ts = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
-    stream_key = rtmp_url.split("/")[-1]
-    filename = f"{stream_key}_{ts}.jpg"
-    output_path = os.path.join(output_dir, filename)
-
-    cmd = [
-        "ffmpeg", "-hide_banner",
-        "-i", rtmp_url,
-        "-vframes", "1",
-        "-f", "image2",
-        output_path,
-    ]
-    try:
-        proc = await asyncio.create_subprocess_exec(
-            *cmd,
-            stdout=asyncio.subprocess.DEVNULL,
-            stderr=asyncio.subprocess.DEVNULL,
-        )
-        await asyncio.wait_for(proc.wait(), timeout=10)
-        if os.path.exists(output_path):
-            return output_path
-    except Exception:
-        pass
-    return None
+            detail["error"] = str(e)
+            detail["media_flowing"] = False
+            return detail
+        finally:
+            for t in reader_tasks:
+                t.cancel()
+            if reader_tasks:
+                await asyncio.gather(*reader_tasks, return_exceptions=True)
+            try:
+                await pc.close()
+            except Exception:
+                pass
 
 
 async def check_device(device_id: int):
-    """Perform a full health check on one device."""
+    """Health = can we actually load video/audio from the device's WHEP address."""
     db = SessionLocal()
     try:
         device = db.query(Device).filter(Device.id == device_id).first()
         if not device or not device.enabled:
             return
 
-        srs_api_base = get_setting(db, "srs_api_base_url", "http://cdn1.obedtv.live:1985/api/v1")
-        rtmp_base = get_setting(db, "rtmp_ingest_base_url", "rtmp://cdn1.obedtv.live:1935/live")
-        rtmp_url = f"{rtmp_base}/{device.srs_stream_key}"
+        whep_base = get_setting(db, "srs_whep_base_url", "http://cdn1.obedtv.live:2023")
 
-        detail = {}
-        frame_path = None
+        try:
+            # Hard cap so a single stuck probe can never overrun the worker
+            # interval and stall the whole batch.
+            detail = await asyncio.wait_for(
+                probe_whep(whep_base, device.srs_app, device.srs_stream_key),
+                timeout=13.0,
+            )
+        except asyncio.TimeoutError:
+            detail = {"media_flowing": False, "error": "probe timeout"}
 
-        # 1. SRS API publisher check
-        has_publisher = await check_srs_publisher(srs_api_base, device.srs_app, device.srs_stream_key)
-        detail["has_publisher"] = has_publisher
-
-        if not has_publisher:
+        if detail.get("media_flowing"):
+            new_status = "HEALTHY"
+            reason = ""
+        elif detail.get("http_status") not in (200, 201):
             new_status = "DOWN"
-            reason = "No publisher"
+            reason = f"WHEP handshake failed (HTTP {detail.get('http_status')})"
         else:
-            # 2. ffmpeg frame analysis
-            ffmpeg_result = await run_ffmpeg_analysis(rtmp_url)
-            detail.update(ffmpeg_result)
+            new_status = "DOWN"
+            reason = "No media on WHEP stream"
 
-            black = ffmpeg_result.get("black_detected", False)
-            frozen = ffmpeg_result.get("freeze_detected", False)
-            silent = ffmpeg_result.get("silence_detected", False)
-
-            if black:
-                new_status = "DOWN"
-                reason = "Black frame detected"
-            elif frozen:
-                new_status = "DOWN"
-                reason = "Frozen frame detected"
-            elif silent:
-                new_status = "WARNING"
-                reason = "Audio silence detected"
-            elif ffmpeg_result.get("error"):
-                new_status = "WARNING"
-                reason = f"ffmpeg error: {ffmpeg_result['error']}"
-            else:
-                new_status = "HEALTHY"
-                reason = ""
-
-            # Capture frame on DOWN/WARNING transition
-            if new_status in ("DOWN", "WARNING") and device.current_status == "HEALTHY":
-                frame_path = await capture_frame(rtmp_url)
-
-        await handle_status_change(
-            db, "device", device_id, new_status, reason, detail, frame_path
-        )
+        await handle_status_change(db, "device", device_id, new_status, reason, detail, None)
     except Exception as e:
         logger.error(f"Device check error for device {device_id}: {e}")
     finally:
