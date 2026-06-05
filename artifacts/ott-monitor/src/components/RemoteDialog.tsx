@@ -35,7 +35,7 @@ export function RemoteDialog({
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="max-w-4xl">
+      <DialogContent className="w-[95vw] max-w-[1400px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Gamepad2 className="h-4 w-4 text-primary" /> {deviceName}
