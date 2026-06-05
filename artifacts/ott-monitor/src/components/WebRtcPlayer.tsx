@@ -18,42 +18,73 @@ declare global {
 export function WebRtcPlayer({ streamKey, webrtcUrl, className }: WebRtcPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const playerRef = useRef<any>(null);
+  const runIdRef = useRef(0);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [muted, setMuted] = useState(true);
   const [error, setError] = useState(false);
 
-  const initPlayer = async () => {
-    if (!videoRef.current || !streamKey || !window.SrsRtcWhipWhepAsync) return;
-    
-    setError(false);
-    
+  const closePlayer = () => {
     if (playerRef.current) {
       try { playerRef.current.close(); } catch (e) {}
+      playerRef.current = null;
+    }
+  };
+
+  const attemptPlay = async () => {
+    if (!videoRef.current) return;
+    closePlayer();
+
+    const player = new window.SrsRtcWhipWhepAsync();
+    playerRef.current = player;
+    videoRef.current.srcObject = player.stream;
+
+    const url = webrtcUrl || `/api/proxy/whep/?stream=${streamKey}`;
+    await player.play(url);
+
+    if (videoRef.current) {
+      videoRef.current.play().catch(() => {});
+    }
+  };
+
+  const initPlayer = async () => {
+    if (!videoRef.current || !streamKey || !window.SrsRtcWhipWhepAsync) return;
+
+    const runId = ++runIdRef.current;
+    const isStale = () => runId !== runIdRef.current;
+
+    if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
+    closePlayer();
+    setError(false);
+
+    const maxAttempts = 4;
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      if (isStale()) return;
+      try {
+        await attemptPlay();
+        if (isStale()) closePlayer();
+        return;
+      } catch (err) {
+        console.error(`WHEP play attempt ${attempt}/${maxAttempts} failed`, err);
+        if (isStale()) return;
+        if (attempt < maxAttempts) {
+          await new Promise((r) => { timerRef.current = setTimeout(r, attempt * 1500); });
+        }
+      }
     }
 
-    try {
-      const player = new window.SrsRtcWhipWhepAsync();
-      playerRef.current = player;
-      
-      videoRef.current.srcObject = player.stream;
-      const url = webrtcUrl || `/api/proxy/whep?stream=${streamKey}`;
-      await player.play(url);
-      
-      if (videoRef.current) {
-         videoRef.current.play().catch(() => {});
-      }
-    } catch (err) {
-      console.error("WHEP play error", err);
+    if (!isStale()) {
+      closePlayer();
       setError(true);
     }
   };
 
   useEffect(() => {
     initPlayer();
-    
+
     return () => {
-      if (playerRef.current) {
-        try { playerRef.current.close(); } catch(e) {}
-      }
+      runIdRef.current++;
+      if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
+      closePlayer();
     };
   }, [streamKey, webrtcUrl]);
 

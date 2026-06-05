@@ -21,6 +21,7 @@ def get_setting_value(key: str, default: str) -> str:
 
 
 @router.post("/whep")
+@router.post("/whep/")
 async def whep_proxy(request: Request, stream: str):
     """Proxy WHEP SDP offer to SRS server and return SDP answer."""
     whep_base = get_setting_value("srs_whep_base_url", "http://cdn1.obedtv.live:2023")
@@ -38,7 +39,7 @@ async def whep_proxy(request: Request, stream: str):
             content=resp.content,
             status_code=resp.status_code,
             media_type=resp.headers.get("Content-Type", "application/sdp"),
-            headers={k: v for k, v in resp.headers.items() if k.lower() not in ("content-length", "transfer-encoding")},
+            headers={k: v for k, v in resp.headers.items() if k.lower() not in ("content-length", "transfer-encoding", "location")},
         )
     except Exception as e:
         logger.error(f"WHEP proxy error: {e}")
