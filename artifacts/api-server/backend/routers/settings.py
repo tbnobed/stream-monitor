@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from database import get_db
-from models import Setting
+from models import Setting, User
 from schemas import SettingOut, SettingsUpdate
+from auth import require_admin
 
 router = APIRouter(prefix="/settings", tags=["settings"])
 
@@ -46,7 +47,11 @@ def list_settings(db: Session = Depends(get_db)):
 
 
 @router.patch("/", response_model=list[SettingOut])
-def update_settings(body: SettingsUpdate, db: Session = Depends(get_db)):
+def update_settings(
+    body: SettingsUpdate,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
+):
     for item in body.settings:
         setting = db.query(Setting).filter(Setting.key == item.key).first()
         if setting:

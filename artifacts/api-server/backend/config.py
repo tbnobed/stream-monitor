@@ -31,6 +31,31 @@ class Settings(BaseSettings):
     alert_on_warning: bool = False
     alerts_enabled: bool = True
 
+    # --- Authentication ---
+    session_secret: str = os.environ.get("SESSION_SECRET", "")
+    # Set true only when served over HTTPS (e.g. behind a TLS terminator). The
+    # self-hosted LAN deploy runs over plain HTTP, so this defaults to false.
+    session_cookie_secure: bool = os.environ.get("SESSION_COOKIE_SECURE", "false").lower() in ("1", "true", "yes")
+
+    # Authentik / OIDC SSO (optional). When all three are set, SSO is enabled.
+    oidc_client_id: str = os.environ.get("OIDC_CLIENT_ID", "")
+    oidc_client_secret: str = os.environ.get("OIDC_CLIENT_SECRET", "")
+    # Full OIDC discovery document URL, e.g.
+    # https://authentik.example.com/application/o/<slug>/.well-known/openid-configuration
+    oidc_discovery_url: str = os.environ.get("OIDC_DISCOVERY_URL", "")
+    # Optional fixed callback URL (recommended behind a reverse proxy), e.g.
+    # http://noc.example.com/api/auth/sso/callback
+    oidc_redirect_uri: str = os.environ.get("OIDC_REDIRECT_URI", "")
+    oidc_display_name: str = os.environ.get("OIDC_DISPLAY_NAME", "Authentik")
+
+    # First-run admin bootstrap (only used when there are zero users).
+    initial_admin_username: str = os.environ.get("INITIAL_ADMIN_USERNAME", "admin")
+    initial_admin_password: str = os.environ.get("INITIAL_ADMIN_PASSWORD", "admin")
+
+    @property
+    def oidc_enabled(self) -> bool:
+        return bool(self.oidc_client_id and self.oidc_client_secret and self.oidc_discovery_url)
+
     class Config:
         env_file = ".env"
         extra = "ignore"

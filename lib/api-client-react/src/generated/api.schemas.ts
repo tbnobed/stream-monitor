@@ -5,6 +5,44 @@
  * OTT Stream Monitor API
  * OpenAPI spec version: 0.1.0
  */
+export interface AuthConfig {
+  sso_enabled: boolean;
+  sso_label: string;
+}
+
+export interface LoginInput {
+  username: string;
+  password: string;
+}
+
+export interface User {
+  id: number;
+  username: string;
+  email?: string | null;
+  full_name?: string | null;
+  role: string;
+  auth_provider: string;
+  is_active: boolean;
+  created_at: string;
+  last_login_at?: string | null;
+}
+
+export interface UserInput {
+  username: string;
+  password?: string | null;
+  email?: string | null;
+  full_name?: string | null;
+  role?: string;
+}
+
+export interface UserUpdate {
+  email?: string | null;
+  full_name?: string | null;
+  role?: string | null;
+  is_active?: boolean | null;
+  password?: string | null;
+}
+
 export interface HealthStatus {
   status: string;
 }

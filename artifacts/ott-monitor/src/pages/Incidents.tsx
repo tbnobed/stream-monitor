@@ -19,7 +19,7 @@ import type { ListIncidentsStatus } from '@workspace/api-client-react';
 
 export default function Incidents() {
   const [statusFilter, setStatusFilter] = useState<ListIncidentsStatus | undefined>(undefined);
-  const { data: incidents, isLoading } = useListIncidents({ query: { status: statusFilter } });
+  const { data: incidents, isLoading } = useListIncidents({ status: statusFilter });
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const acknowledgeIncident = useAcknowledgeIncident();

@@ -51,7 +51,20 @@ A full-stack broadcast NOC (Network Operations Center) tool that monitors live O
 - **Device Registry** (`/devices`): Full CRUD for OTT devices (Roku, Fire TV, Chromecast, Apple TV, other).
 - **HLS Stream Registry** (`/hls-streams`): Full CRUD for HLS source streams.
 - **Incidents** (`/incidents`): Global incident feed with filtering, acknowledge, and per-item uptime %/MTTR.
-- **Settings** (`/settings`): All endpoints, intervals, thresholds, and webhook URLs — editable via UI.
+- **Settings** (`/settings`, admin only): All endpoints, intervals, thresholds, and webhook URLs — editable via UI.
+- **Users** (`/users`, admin only): Manage local accounts and roles.
+
+## Authentication
+
+The entire app (frontend + API) is gated. Unauthenticated API calls return 401; the React app shows a login screen until a session exists.
+
+- **Two roles**: `admin` (manage users + edit settings) and `operator` (view + control devices). Settings PATCH and all `/api/users` routes require admin.
+- **Local accounts**: username/password, bcrypt-hashed. On first boot, when the user table is empty, an initial admin is created from `INITIAL_ADMIN_USERNAME`/`INITIAL_ADMIN_PASSWORD` (defaults `admin`/`admin` — change it after first login).
+- **Email on accounts**: every account has an optional, format-validated email (`UserCreate`/`UserUpdate` use Pydantic `EmailStr`, backed by `email-validator`) intended for notifications (e.g. the planned SendGrid integration). Admins set/edit it on the Users page; SSO stores the IdP email only when the token's `email_verified` is true.
+- **Optional Authentik (OIDC) SSO**: enabled only when `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, and `OIDC_DISCOVERY_URL` are all set. The login page then shows a "Sign in with {OIDC_DISPLAY_NAME}" button. SSO users are auto-provisioned as `operator`. OIDC is implemented directly with `httpx` (Authlib is blocked by the package firewall): the flow does state-CSRF in the session, then code → token (`client_secret_post`) → userinfo. Behind a reverse proxy, set `OIDC_REDIRECT_URI` to the public callback URL.
+- **Sessions**: signed cookies via Starlette `SessionMiddleware` (`SESSION_SECRET`). `same_site=lax`; set `SESSION_COOKIE_SECURE=true` only when served over HTTPS. Frontend is same-origin, so cookies are sent automatically — never set an auth token getter on the API client.
+- **Backend layout**: `auth.py` (hashing, `get_current_user`, `require_admin`), `routers/auth.py` (`/config`, `/login`, `/logout`, `/me`, `/sso/login`, `/sso/callback`), `routers/users.py` (admin CRUD with last-admin guards). `config.py` reads `SESSION_*`, `OIDC_*`, `INITIAL_ADMIN_*`.
+- **Frontend layout**: `hooks/use-auth.tsx` (provider over `useGetCurrentUser`), `pages/Login.tsx`, `pages/Users.tsx`. `App.tsx` gates routes (Settings/Users admin-only) and re-checks the current user when any query returns 401 (session expiry → back to login).
 
 ## Adding a device
 

@@ -21,6 +21,10 @@ tags:
     description: System configuration
   - name: dashboard
     description: Aggregated dashboard data
+  - name: auth
+    description: Authentication and session
+  - name: users
+    description: User account management (admin only)
   - name: guacamole
     description: Guacamole remote session management
   - name: remote
@@ -690,8 +694,225 @@ paths:
                 items:
                   $ref: "#/components/schemas/Incident"
 
+  # Auth
+  /auth/config:
+    get:
+      operationId: getAuthConfig
+      tags: [auth]
+      summary: Public auth configuration (SSO availability)
+      responses:
+        "200":
+          description: Auth config
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthConfig"
+
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Log in with a local username and password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginInput"
+      responses:
+        "200":
+          description: Authenticated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          description: Invalid credentials
+
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Log out the current session
+      responses:
+        "200":
+          description: Logged out
+
+  /auth/me:
+    get:
+      operationId: getCurrentUser
+      tags: [auth]
+      summary: Get the currently authenticated user
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          description: Not authenticated
+
+  # Users (admin only)
+  /users:
+    get:
+      operationId: listUsers
+      tags: [users]
+      summary: List all users
+      responses:
+        "200":
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+    post:
+      operationId: createUser
+      tags: [users]
+      summary: Create a local user account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  /users/{id}:
+    patch:
+      operationId: updateUser
+      tags: [users]
+      summary: Update a user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserUpdate"
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+    delete:
+      operationId: deleteUser
+      tags: [users]
+      summary: Delete a user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
 components:
   schemas:
+    AuthConfig:
+      type: object
+      required: [sso_enabled, sso_label]
+      properties:
+        sso_enabled:
+          type: boolean
+        sso_label:
+          type: string
+
+    LoginInput:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+
+    User:
+      type: object
+      required: [id, username, role, auth_provider, is_active, created_at]
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        email:
+          type: string
+          format: email
+          nullable: true
+        full_name:
+          type: string
+          nullable: true
+        role:
+          type: string
+        auth_provider:
+          type: string
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        last_login_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    UserInput:
+      type: object
+      required: [username]
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+          nullable: true
+        email:
+          type: string
+          format: email
+          nullable: true
+        full_name:
+          type: string
+          nullable: true
+        role:
+          type: string
+          default: operator
+
+    UserUpdate:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          nullable: true
+        full_name:
+          type: string
+          nullable: true
+        role:
+          type: string
+          nullable: true
+        is_active:
+          type: boolean
+          nullable: true
+        password:
+          type: string
+          nullable: true
+
     HealthStatus:
       type: object
       properties:

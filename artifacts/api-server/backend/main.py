@@ -1,11 +1,15 @@
 import os
 import asyncio
 import logging
+import secrets
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.sessions import SessionMiddleware
 from database import Base, engine
-from routers import devices, hls_streams, check_results, incidents, settings, dashboard, proxy, sse, guacamole_sessions, remote
+from routers import devices, hls_streams, check_results, incidents, settings, dashboard, proxy, sse, guacamole_sessions, remote, auth, users
+from auth import get_current_user
+from config import settings as app_settings
 from workers.device_worker import device_worker_loop
 from workers.hls_worker import hls_worker_loop
 
@@ -37,6 +41,23 @@ async def lifespan(app: FastAPI):
         for d in seed_devices:
             db.add(d)
         logger.info("Seeded 4 devices")
+
+    # Bootstrap the first admin account on a fresh install.
+    from models import User
+    from auth import hash_password
+    if db.query(User).count() == 0:
+        admin = User(
+            username=app_settings.initial_admin_username,
+            role="admin",
+            auth_provider="local",
+            password_hash=hash_password(app_settings.initial_admin_password),
+            is_active=True,
+        )
+        db.add(admin)
+        logger.warning(
+            "Created initial admin user '%s'. CHANGE THE PASSWORD after first login.",
+            app_settings.initial_admin_username,
+        )
 
     db.commit()
     db.close()
@@ -76,17 +97,33 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Routers
-app.include_router(devices.router)
-app.include_router(hls_streams.router)
-app.include_router(check_results.router)
-app.include_router(incidents.router)
-app.include_router(settings.router)
-app.include_router(dashboard.router)
-app.include_router(proxy.router)
-app.include_router(sse.router)
-app.include_router(guacamole_sessions.router)
-app.include_router(remote.router)
+# Signed-cookie sessions (auth + OIDC state). Falls back to an ephemeral secret
+# in dev if SESSION_SECRET is unset (sessions reset on restart).
+_session_secret = app_settings.session_secret or secrets.token_hex(32)
+if not app_settings.session_secret:
+    logger.warning("SESSION_SECRET not set; using an ephemeral secret (sessions reset on restart)")
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=_session_secret,
+    same_site="lax",
+    https_only=app_settings.session_cookie_secure,
+)
+
+# Auth endpoints are public; everything else requires a valid session.
+auth_required = [Depends(get_current_user)]
+
+app.include_router(auth.router)
+app.include_router(users.router)  # admin-gated inside the router
+app.include_router(devices.router, dependencies=auth_required)
+app.include_router(hls_streams.router, dependencies=auth_required)
+app.include_router(check_results.router, dependencies=auth_required)
+app.include_router(incidents.router, dependencies=auth_required)
+app.include_router(settings.router, dependencies=auth_required)
+app.include_router(dashboard.router, dependencies=auth_required)
+app.include_router(proxy.router, dependencies=auth_required)
+app.include_router(sse.router, dependencies=auth_required)
+app.include_router(guacamole_sessions.router, dependencies=auth_required)
+app.include_router(remote.router, dependencies=auth_required)
 
 
 @app.get("/healthz")

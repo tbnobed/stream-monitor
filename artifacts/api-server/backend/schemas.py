@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 from typing import Optional, Any
 from datetime import datetime
 
@@ -204,6 +204,47 @@ class RemotePairBeginOut(BaseModel):
     ok: bool
     requires_pin: bool
     message: str
+
+
+class UserOut(BaseModel):
+    id: int
+    username: str
+    email: Optional[str] = None
+    full_name: Optional[str] = None
+    role: str
+    auth_provider: str
+    is_active: bool
+    created_at: datetime
+    last_login_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class UserCreate(BaseModel):
+    username: str
+    password: Optional[str] = None
+    email: Optional[EmailStr] = None
+    full_name: Optional[str] = None
+    role: str = "operator"
+
+
+class UserUpdate(BaseModel):
+    email: Optional[EmailStr] = None
+    full_name: Optional[str] = None
+    role: Optional[str] = None
+    is_active: Optional[bool] = None
+    password: Optional[str] = None
+
+
+class LoginInput(BaseModel):
+    username: str
+    password: str
+
+
+class AuthConfig(BaseModel):
+    sso_enabled: bool
+    sso_label: str
 
 
 class DashboardSummary(BaseModel):

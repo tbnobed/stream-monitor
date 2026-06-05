@@ -7,6 +7,7 @@
  */
 
 export * from './acknowledgeInput';
+export * from './authConfig';
 export * from './checkResult';
 export * from './checkResultDetail';
 export * from './checkResultStatus';
@@ -34,6 +35,7 @@ export * from './itemStats';
 export * from './listCheckResultsParams';
 export * from './listIncidentsParams';
 export * from './listIncidentsStatus';
+export * from './loginInput';
 export * from './remoteActionResult';
 export * from './remoteApp';
 export * from './remoteCapabilities';
@@ -45,3 +47,6 @@ export * from './remoteStatus';
 export * from './setting';
 export * from './settingsUpdate';
 export * from './settingsUpdateSettingsItem';
+export * from './user';
+export * from './userInput';
+export * from './userUpdate';

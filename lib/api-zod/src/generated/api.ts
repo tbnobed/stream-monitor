@@ -626,3 +626,116 @@ export const GetDashboardRecentIncidentsResponseItem = zod.object({
 export const GetDashboardRecentIncidentsResponse = zod.array(GetDashboardRecentIncidentsResponseItem)
 
 
+/**
+ * @summary Public auth configuration (SSO availability)
+ */
+export const GetAuthConfigResponse = zod.object({
+  "sso_enabled": zod.boolean(),
+  "sso_label": zod.string()
+})
+
+
+/**
+ * @summary Log in with a local username and password
+ */
+export const LoginBody = zod.object({
+  "username": zod.string(),
+  "password": zod.string()
+})
+
+export const LoginResponse = zod.object({
+  "id": zod.number(),
+  "username": zod.string(),
+  "email": zod.string().email().nullish(),
+  "full_name": zod.string().nullish(),
+  "role": zod.string(),
+  "auth_provider": zod.string(),
+  "is_active": zod.boolean(),
+  "created_at": zod.coerce.date(),
+  "last_login_at": zod.coerce.date().nullish()
+})
+
+
+/**
+ * @summary Get the currently authenticated user
+ */
+export const GetCurrentUserResponse = zod.object({
+  "id": zod.number(),
+  "username": zod.string(),
+  "email": zod.string().email().nullish(),
+  "full_name": zod.string().nullish(),
+  "role": zod.string(),
+  "auth_provider": zod.string(),
+  "is_active": zod.boolean(),
+  "created_at": zod.coerce.date(),
+  "last_login_at": zod.coerce.date().nullish()
+})
+
+
+/**
+ * @summary List all users
+ */
+export const ListUsersResponseItem = zod.object({
+  "id": zod.number(),
+  "username": zod.string(),
+  "email": zod.string().email().nullish(),
+  "full_name": zod.string().nullish(),
+  "role": zod.string(),
+  "auth_provider": zod.string(),
+  "is_active": zod.boolean(),
+  "created_at": zod.coerce.date(),
+  "last_login_at": zod.coerce.date().nullish()
+})
+export const ListUsersResponse = zod.array(ListUsersResponseItem)
+
+
+/**
+ * @summary Create a local user account
+ */
+export const createUserBodyRoleDefault = `operator`;
+
+export const CreateUserBody = zod.object({
+  "username": zod.string(),
+  "password": zod.string().nullish(),
+  "email": zod.string().email().nullish(),
+  "full_name": zod.string().nullish(),
+  "role": zod.string().default(createUserBodyRoleDefault)
+})
+
+
+/**
+ * @summary Update a user
+ */
+export const UpdateUserParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const UpdateUserBody = zod.object({
+  "email": zod.string().email().nullish(),
+  "full_name": zod.string().nullish(),
+  "role": zod.string().nullish(),
+  "is_active": zod.boolean().nullish(),
+  "password": zod.string().nullish()
+})
+
+export const UpdateUserResponse = zod.object({
+  "id": zod.number(),
+  "username": zod.string(),
+  "email": zod.string().email().nullish(),
+  "full_name": zod.string().nullish(),
+  "role": zod.string(),
+  "auth_provider": zod.string(),
+  "is_active": zod.boolean(),
+  "created_at": zod.coerce.date(),
+  "last_login_at": zod.coerce.date().nullish()
+})
+
+
+/**
+ * @summary Delete a user
+ */
+export const DeleteUserParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+

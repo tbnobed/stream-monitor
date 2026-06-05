@@ -96,3 +96,20 @@ class Setting(Base):
     key = Column(String(255), primary_key=True)
     value = Column(Text, nullable=False)
     description = Column(Text, nullable=True)
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String(150), unique=True, nullable=False, index=True)
+    email = Column(String(255), nullable=True)
+    full_name = Column(String(255), nullable=True)
+    # Null for SSO-only accounts that never set a local password.
+    password_hash = Column(String(255), nullable=True)
+    role = Column(String(20), nullable=False, default="operator")  # admin | operator
+    auth_provider = Column(String(20), nullable=False, default="local")  # local | oidc
+    oidc_subject = Column(String(255), nullable=True, unique=True, index=True)
+    is_active = Column(Boolean, nullable=False, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    last_login_at = Column(DateTime(timezone=True), nullable=True)

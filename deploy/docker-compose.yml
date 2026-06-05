@@ -40,6 +40,22 @@ services:
     environment:
       DATABASE_URL: ${DATABASE_URL:?set DATABASE_URL in deploy/.env}
       PORT: "8080"
+      # --- Authentication ---
+      # Signs session cookies. Required; install.sh generates one in deploy/.env.
+      SESSION_SECRET: ${SESSION_SECRET:?set SESSION_SECRET in deploy/.env}
+      # Set "true" only when the UI is served over HTTPS (e.g. behind a TLS
+      # terminator). The default LAN deploy is plain HTTP, so this stays false.
+      SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
+      # First-run admin bootstrap (only used when there are zero users).
+      INITIAL_ADMIN_USERNAME: ${INITIAL_ADMIN_USERNAME:-admin}
+      INITIAL_ADMIN_PASSWORD: ${INITIAL_ADMIN_PASSWORD:-admin}
+      # Authentik / OIDC SSO (optional). SSO turns on only when CLIENT_ID,
+      # CLIENT_SECRET, and DISCOVERY_URL are all set.
+      OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-}
+      OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET:-}
+      OIDC_DISCOVERY_URL: ${OIDC_DISCOVERY_URL:-}
+      OIDC_REDIRECT_URI: ${OIDC_REDIRECT_URI:-}
+      OIDC_DISPLAY_NAME: ${OIDC_DISPLAY_NAME:-Authentik}
     depends_on:
       db:
         condition: service_healthy

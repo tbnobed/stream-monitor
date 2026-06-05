@@ -57,23 +57,51 @@ fi
 # ---------------------------------------------------------------------------
 # 2. Create deploy/.env on first run (generates a strong DB password).
 # ---------------------------------------------------------------------------
+rand_hex() {
+  # $1 = number of bytes
+  if command -v openssl >/dev/null 2>&1; then
+    openssl rand -hex "$1"
+  else
+    head -c "$1" /dev/urandom | od -An -tx1 | tr -d ' \n'
+  fi
+}
+
 if [[ ! -f .env ]]; then
   echo "==> Generating deploy/.env ..."
-  if command -v openssl >/dev/null 2>&1; then
-    PW="$(openssl rand -hex 24)"
-  else
-    PW="$(head -c 24 /dev/urandom | od -An -tx1 | tr -d ' \n')"
-  fi
+  PW="$(rand_hex 24)"
+  SECRET="$(rand_hex 32)"
   cat > .env <<EOF
 POSTGRES_USER=ott
 POSTGRES_PASSWORD=${PW}
 POSTGRES_DB=ott_monitor
 DATABASE_URL=postgresql://ott:${PW}@127.0.0.1:5432/ott_monitor
+
+# --- Authentication ---
+SESSION_SECRET=${SECRET}
+SESSION_COOKIE_SECURE=false
+INITIAL_ADMIN_USERNAME=admin
+INITIAL_ADMIN_PASSWORD=admin
+
+# --- Authentik / OIDC SSO (optional; leave blank to disable) ---
+OIDC_CLIENT_ID=
+OIDC_CLIENT_SECRET=
+OIDC_DISCOVERY_URL=
+OIDC_REDIRECT_URI=
+OIDC_DISPLAY_NAME=Authentik
 EOF
   chmod 600 .env
   echo "    Wrote deploy/.env (keep this file private)."
+  echo "    Default login: admin / admin — change it after first sign-in."
 else
   echo "==> deploy/.env already exists; leaving it untouched."
+  if ! grep -q '^SESSION_SECRET=' .env; then
+    echo "==> Adding a generated SESSION_SECRET to existing deploy/.env ..."
+    {
+      echo ""
+      echo "# --- Authentication (added by install.sh) ---"
+      echo "SESSION_SECRET=$(rand_hex 32)"
+    } >> .env
+  fi
 fi
 
 # ---------------------------------------------------------------------------

@@ -1,5 +1,12 @@
 import React from "react";
-import { useListDevices, useListHlsStreams, useGetDashboardSummary } from "@workspace/api-client-react";
+import {
+  useListDevices,
+  useListHlsStreams,
+  useGetDashboardSummary,
+  getListDevicesQueryKey,
+  getListHlsStreamsQueryKey,
+  getGetDashboardSummaryQueryKey,
+} from "@workspace/api-client-react";
 import { useSse } from "@/hooks/use-sse";
 import { WebRtcPlayer } from "@/components/WebRtcPlayer";
 import { PlatformIcon } from "@/components/PlatformIcon";
@@ -11,9 +18,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function Dashboard() {
-  const { data: summary } = useGetDashboardSummary({ query: { refetchInterval: 15000 } });
-  const { data: devices } = useListDevices({ query: { refetchInterval: 15000 } });
-  const { data: hlsStreams } = useListHlsStreams({ query: { refetchInterval: 15000 } });
+  const { data: summary } = useGetDashboardSummary({
+    query: { queryKey: getGetDashboardSummaryQueryKey(), refetchInterval: 15000 },
+  });
+  const { data: devices } = useListDevices({
+    query: { queryKey: getListDevicesQueryKey(), refetchInterval: 15000 },
+  });
+  const { data: hlsStreams } = useListHlsStreams({
+    query: { queryKey: getListHlsStreamsQueryKey(), refetchInterval: 15000 },
+  });
   const { deviceStatuses, hlsStreamStatuses } = useSse();
 
   return (

@@ -1,22 +1,55 @@
 import React from "react";
 import { Link, useLocation } from "wouter";
-import { useGetDashboardSummary } from "@workspace/api-client-react";
-import { Activity, LayoutDashboard, Monitor, PlaySquare, AlertTriangle, Settings, Radio } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import {
+  useGetDashboardSummary,
+  useLogout,
+  getGetCurrentUserQueryKey,
+  getGetDashboardSummaryQueryKey,
+} from "@workspace/api-client-react";
+import {
+  Activity,
+  LayoutDashboard,
+  Monitor,
+  PlaySquare,
+  AlertTriangle,
+  Settings,
+  Radio,
+  Users as UsersIcon,
+  LogOut,
+  ShieldCheck,
+  User as UserIcon,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/use-auth";
 
 export function Nav() {
   const [location] = useLocation();
-  const { data: summary } = useGetDashboardSummary({ query: { refetchInterval: 15000 } });
+  const queryClient = useQueryClient();
+  const { user, isAdmin } = useAuth();
+  const { data: summary } = useGetDashboardSummary({
+    query: { queryKey: getGetDashboardSummaryQueryKey(), refetchInterval: 15000 },
+  });
 
   const downCount = (summary?.devices_down || 0) + (summary?.hls_down || 0);
 
+  const logout = useLogout({
+    mutation: {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getGetCurrentUserQueryKey() });
+      },
+    },
+  });
+
   const links = [
-    { href: "/", label: "Wall", icon: LayoutDashboard },
-    { href: "/devices", label: "Devices", icon: Monitor },
-    { href: "/hls-streams", label: "HLS Streams", icon: PlaySquare },
-    { href: "/incidents", label: "Incidents", icon: AlertTriangle },
-    { href: "/settings", label: "Settings", icon: Settings },
-  ];
+    { href: "/", label: "Wall", icon: LayoutDashboard, adminOnly: false },
+    { href: "/devices", label: "Devices", icon: Monitor, adminOnly: false },
+    { href: "/hls-streams", label: "HLS Streams", icon: PlaySquare, adminOnly: false },
+    { href: "/incidents", label: "Incidents", icon: AlertTriangle, adminOnly: false },
+    { href: "/settings", label: "Settings", icon: Settings, adminOnly: true },
+    { href: "/users", label: "Users", icon: UsersIcon, adminOnly: true },
+  ].filter((l) => !l.adminOnly || isAdmin);
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -48,6 +81,24 @@ export function Nav() {
               <span className="text-status-healthy font-bold">ALL CLEAR</span>
             )}
           </div>
+          {user && (
+            <div className="flex items-center space-x-2 text-sm">
+              {isAdmin ? (
+                <ShieldCheck className="h-4 w-4 text-primary" />
+              ) : (
+                <UserIcon className="h-4 w-4 text-muted-foreground" />
+              )}
+              <span className="hidden sm:inline text-foreground/80">{user.username}</span>
+              <Button
+                variant="ghost"
+                size="icon"
+                title="Sign out"
+                onClick={() => logout.mutate()}
+              >
+                <LogOut className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     </nav>
