@@ -20,12 +20,12 @@ def _serialize(device: Device) -> DeviceOut:
     return out
 
 
-@router.get("/", response_model=list[DeviceOut])
+@router.get("", response_model=list[DeviceOut])
 def list_devices(db: Session = Depends(get_db)):
     return [_serialize(d) for d in db.query(Device).order_by(Device.id).all()]
 
 
-@router.post("/", response_model=DeviceOut, status_code=201)
+@router.post("", response_model=DeviceOut, status_code=201)
 def create_device(body: DeviceInput, db: Session = Depends(get_db)):
     device = Device(**body.model_dump())
     db.add(device)

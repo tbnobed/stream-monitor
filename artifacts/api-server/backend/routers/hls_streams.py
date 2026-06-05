@@ -8,12 +8,12 @@ from routers.devices import _calc_stats
 router = APIRouter(prefix="/hls-streams", tags=["hls-streams"])
 
 
-@router.get("/", response_model=list[HlsStreamOut])
+@router.get("", response_model=list[HlsStreamOut])
 def list_hls_streams(db: Session = Depends(get_db)):
     return db.query(HlsStream).order_by(HlsStream.id).all()
 
 
-@router.post("/", response_model=HlsStreamOut, status_code=201)
+@router.post("", response_model=HlsStreamOut, status_code=201)
 def create_hls_stream(body: HlsStreamInput, db: Session = Depends(get_db)):
     stream = HlsStream(**body.model_dump())
     db.add(stream)

@@ -1,0 +1,16 @@
+web-1  | 192.168.200.193 - - [05/Jun/2026:21:31:34 +0000] "GET /favicon.svg HTTP/1.1" 200 163 "https://vdi.obtv.io/" "Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; GPTBot/1.4; +https://openai.com/gptbot)" "74.7.227.32"
+web-1  | 192.168.200.193 - - [05/Jun/2026:21:31:37 +0000] "GET /assets/index-CEGhHpyd.css HTTP/1.1" 200 99000 "https://vdi.obtv.io/" "Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; GPTBot/1.4; +https://openai.com/gptbot)" "74.7.227.32"
+api-1  | INFO:     192.168.200.193:0 - "POST /api/devices HTTP/1.1" 307 Temporary Redirect
+web-1  | 192.168.200.193 - - [05/Jun/2026:21:31:37 +0000] "POST /api/devices HTTP/1.1" 307 0 "https://vdi.obtv.io/devices" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:151.0) Gecko/20100101 Firefox/151.0" "136.52.20.30"
+api-1  | INFO:     192.168.200.193:0 - "GET /api/dashboard/summary HTTP/1.1" 200 OK
+web-1  | 192.168.200.193 - - [05/Jun/2026:21:31:37 +0000] "GET /api/dashboard/summary HTTP/1.1" 200 198 "https://vdi.obtv.io/devices" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:151.0) Gecko/20100101 Firefox/151.0" "136.52.20.30"
+api-1  | INFO:     192.168.200.193:0 - "POST /api/devices HTTP/1.1" 307 Temporary Redirect
+web-1  | 192.168.200.193 - - [05/Jun/2026:21:31:38 +0000] "POST /api/devices HTTP/1.1" 307 0 "https://vdi.obtv.io/devices" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:151.0) Gecko/20100101 Firefox/151.0" "136.52.20.30"
+api-1  | INFO:     192.168.200.193:0 - "POST /api/devices HTTP/1.1" 307 Temporary Redirect
+web-1  | 192.168.200.193 - - [05/Jun/2026:21:31:38 +0000] "POST /api/devices HTTP/1.1" 307 0 "https://vdi.obtv.io/devices" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:151.0) Gecko/20100101 Firefox/151.0" "136.52.20.30"
+api-1  | INFO:     192.168.200.193:0 - "POST /api/devices HTTP/1.1" 307 Temporary Redirect
+web-1  | 192.168.200.193 - - [05/Jun/2026:21:31:38 +0000] "POST /api/devices HTTP/1.1" 307 0 "https://vdi.obtv.io/devices" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:151.0) Gecko/20100101 Firefox/151.0" "136.52.20.30"
+api-1  | INFO:     192.168.200.193:0 - "POST /api/devices HTTP/1.1" 307 Temporary Redirect
+web-1  | 192.168.200.193 - - [05/Jun/2026:21:31:38 +0000] "POST /api/devices HTTP/1.1" 307 0 "https://vdi.obtv.io/devices" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:151.0) Gecko/20100101 Firefox/151.0" "136.52.20.30"
+api-1  | INFO:     192.168.200.193:0 - "POST /api/devices HTTP/1.1" 307 Temporary Redirect
+web-1  | 192.168.200.193 - - [05/Jun/2026:21:31:39 +0000] "POST /api/devices HTTP/1.1" 307 0 "https://vdi.obtv.io/devices" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:151.0) Gecko/20100101 Firefox/151.0" "136.52.20.30"

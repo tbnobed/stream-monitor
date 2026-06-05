@@ -19,12 +19,12 @@ def _active_admin_count(db: Session) -> int:
     return db.query(User).filter(User.role == "admin", User.is_active.is_(True)).count()
 
 
-@router.get("/", response_model=list[UserOut])
+@router.get("", response_model=list[UserOut])
 def list_users(db: Session = Depends(get_db), _: User = Depends(require_admin)):
     return db.query(User).order_by(User.username).all()
 
 
-@router.post("/", response_model=UserOut, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=UserOut, status_code=status.HTTP_201_CREATED)
 def create_user(
     body: UserCreate, db: Session = Depends(get_db), _: User = Depends(require_admin)
 ):

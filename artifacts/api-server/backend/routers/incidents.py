@@ -25,7 +25,7 @@ def _enrich(incident: Incident) -> dict:
     return d
 
 
-@router.get("/", response_model=list[IncidentOut])
+@router.get("", response_model=list[IncidentOut])
 def list_incidents(
     device_id: Optional[int] = Query(None),
     hls_stream_id: Optional[int] = Query(None),

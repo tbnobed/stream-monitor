@@ -40,13 +40,13 @@ def ensure_defaults(db: Session):
     db.commit()
 
 
-@router.get("/", response_model=list[SettingOut])
+@router.get("", response_model=list[SettingOut])
 def list_settings(db: Session = Depends(get_db)):
     ensure_defaults(db)
     return db.query(Setting).order_by(Setting.key).all()
 
 
-@router.patch("/", response_model=list[SettingOut])
+@router.patch("", response_model=list[SettingOut])
 def update_settings(
     body: SettingsUpdate,
     db: Session = Depends(get_db),

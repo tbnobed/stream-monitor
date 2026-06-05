@@ -8,7 +8,7 @@ from schemas import CheckResultOut
 router = APIRouter(prefix="/check-results", tags=["check-results"])
 
 
-@router.get("/", response_model=list[CheckResultOut])
+@router.get("", response_model=list[CheckResultOut])
 def list_check_results(
     device_id: Optional[int] = Query(None),
     hls_stream_id: Optional[int] = Query(None),

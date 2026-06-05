@@ -7,12 +7,12 @@ from schemas import GuacamoleSessionInput, GuacamoleSessionUpdate, GuacamoleSess
 router = APIRouter(prefix="/guacamole-sessions", tags=["guacamole"])
 
 
-@router.get("/", response_model=list[GuacamoleSessionOut])
+@router.get("", response_model=list[GuacamoleSessionOut])
 def list_sessions(db: Session = Depends(get_db)):
     return db.query(GuacamoleSession).order_by(GuacamoleSession.id).all()
 
 
-@router.post("/", response_model=GuacamoleSessionOut, status_code=201)
+@router.post("", response_model=GuacamoleSessionOut, status_code=201)
 def create_session(data: GuacamoleSessionInput, db: Session = Depends(get_db)):
     session = GuacamoleSession(**data.model_dump())
     db.add(session)
