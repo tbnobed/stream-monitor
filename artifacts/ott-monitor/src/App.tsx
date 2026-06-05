@@ -51,9 +51,9 @@ function Router() {
     <Layout>
       <Switch>
         <Route path="/" component={Dashboard} />
-        <Route path="/devices" component={Devices} />
-        <Route path="/hls-streams" component={HlsStreams} />
-        <Route path="/incidents" component={Incidents} />
+        {isAdmin && <Route path="/devices" component={Devices} />}
+        {isAdmin && <Route path="/hls-streams" component={HlsStreams} />}
+        {isAdmin && <Route path="/incidents" component={Incidents} />}
         {isAdmin && <Route path="/settings" component={Settings} />}
         {isAdmin && <Route path="/users" component={Users} />}
         <Route component={NotFound} />

@@ -44,9 +44,9 @@ export function Nav() {
 
   const links = [
     { href: "/", label: "Wall", icon: LayoutDashboard, adminOnly: false },
-    { href: "/devices", label: "Devices", icon: Monitor, adminOnly: false },
-    { href: "/hls-streams", label: "HLS Streams", icon: PlaySquare, adminOnly: false },
-    { href: "/incidents", label: "Incidents", icon: AlertTriangle, adminOnly: false },
+    { href: "/devices", label: "Devices", icon: Monitor, adminOnly: true },
+    { href: "/hls-streams", label: "HLS Streams", icon: PlaySquare, adminOnly: true },
+    { href: "/incidents", label: "Incidents", icon: AlertTriangle, adminOnly: true },
     { href: "/settings", label: "Settings", icon: Settings, adminOnly: true },
     { href: "/users", label: "Users", icon: UsersIcon, adminOnly: true },
   ].filter((l) => !l.adminOnly || isAdmin);
