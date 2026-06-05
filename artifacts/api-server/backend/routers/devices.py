@@ -4,14 +4,25 @@ from sqlalchemy import func
 from database import get_db
 from models import Device, Incident, CheckResult
 from schemas import DeviceInput, DeviceUpdate, DeviceOut, ItemStats, CheckResultOut
+from services.remote import remote_info
 from datetime import datetime, timedelta
 
 router = APIRouter(prefix="/devices", tags=["devices"])
 
 
+def _serialize(device: Device) -> DeviceOut:
+    out = DeviceOut.model_validate(device)
+    info = remote_info(device)
+    out.remote_protocol = info["protocol"]
+    out.remote_capable = info["capable"]
+    out.remote_requires_pairing = info["requires_pairing"]
+    out.remote_paired = info["paired"]
+    return out
+
+
 @router.get("/", response_model=list[DeviceOut])
 def list_devices(db: Session = Depends(get_db)):
-    return db.query(Device).order_by(Device.id).all()
+    return [_serialize(d) for d in db.query(Device).order_by(Device.id).all()]
 
 
 @router.post("/", response_model=DeviceOut, status_code=201)
@@ -20,7 +31,7 @@ def create_device(body: DeviceInput, db: Session = Depends(get_db)):
     db.add(device)
     db.commit()
     db.refresh(device)
-    return device
+    return _serialize(device)
 
 
 @router.get("/{id}", response_model=DeviceOut)
@@ -28,7 +39,7 @@ def get_device(id: int, db: Session = Depends(get_db)):
     device = db.query(Device).filter(Device.id == id).first()
     if not device:
         raise HTTPException(status_code=404, detail="Device not found")
-    return device
+    return _serialize(device)
 
 
 @router.patch("/{id}", response_model=DeviceOut)
@@ -40,7 +51,7 @@ def update_device(id: int, body: DeviceUpdate, db: Session = Depends(get_db)):
         setattr(device, k, v)
     db.commit()
     db.refresh(device)
-    return device
+    return _serialize(device)
 
 
 @router.delete("/{id}", status_code=204)

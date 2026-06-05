@@ -11,6 +11,7 @@ class DeviceBase(BaseModel):
     enabled: bool = True
     webrtc_url: Optional[str] = None
     notes: Optional[str] = None
+    ip_address: Optional[str] = None
 
 
 class DeviceInput(DeviceBase):
@@ -25,6 +26,7 @@ class DeviceUpdate(BaseModel):
     enabled: Optional[bool] = None
     webrtc_url: Optional[str] = None
     notes: Optional[str] = None
+    ip_address: Optional[str] = None
 
 
 class DeviceOut(DeviceBase):
@@ -32,6 +34,11 @@ class DeviceOut(DeviceBase):
     current_status: str
     last_checked_at: Optional[datetime] = None
     failure_reason: Optional[str] = None
+    # Derived remote-control metadata (never exposes raw credentials).
+    remote_protocol: Optional[str] = None
+    remote_capable: bool = False
+    remote_requires_pairing: bool = False
+    remote_paired: bool = False
 
     class Config:
         from_attributes = True
@@ -151,6 +158,52 @@ class ItemStats(BaseModel):
     total_incidents: int
     mttr_seconds: Optional[float] = None
     window: str
+
+
+class RemoteKeyInput(BaseModel):
+    key: str
+
+
+class RemoteLaunchInput(BaseModel):
+    app_id: str
+
+
+class RemotePairFinishInput(BaseModel):
+    pin: Optional[str] = None
+
+
+class RemoteAppOut(BaseModel):
+    id: str
+    name: str
+
+
+class RemoteStatusOut(BaseModel):
+    protocol: Optional[str] = None
+    capable: bool = False
+    reachable: bool = False
+    paired: bool = False
+    requires_pairing: bool = False
+    detail: Optional[str] = None
+
+
+class RemoteCapabilitiesOut(BaseModel):
+    protocol: Optional[str] = None
+    capable: bool = False
+    requires_pairing: bool = False
+    supports_app_launch: bool = False
+    keys: list[str] = []
+    apps: list[RemoteAppOut] = []
+
+
+class RemoteActionResult(BaseModel):
+    ok: bool
+    detail: Optional[str] = None
+
+
+class RemotePairBeginOut(BaseModel):
+    ok: bool
+    requires_pin: bool
+    message: str
 
 
 class DashboardSummary(BaseModel):

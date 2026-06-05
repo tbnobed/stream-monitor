@@ -28,9 +28,14 @@ export const ListDevicesResponseItem = zod.object({
   "enabled": zod.boolean(),
   "webrtc_url": zod.string().nullish(),
   "notes": zod.string().nullish(),
+  "ip_address": zod.string().nullish(),
   "current_status": zod.enum(['HEALTHY', 'WARNING', 'DOWN', 'UNKNOWN']),
   "last_checked_at": zod.string().nullish(),
-  "failure_reason": zod.string().nullish()
+  "failure_reason": zod.string().nullish(),
+  "remote_protocol": zod.string().nullish(),
+  "remote_capable": zod.boolean().optional(),
+  "remote_requires_pairing": zod.boolean().optional(),
+  "remote_paired": zod.boolean().optional()
 })
 export const ListDevicesResponse = zod.array(ListDevicesResponseItem)
 
@@ -48,7 +53,8 @@ export const CreateDeviceBody = zod.object({
   "srs_app": zod.string().default(createDeviceBodySrsAppDefault),
   "enabled": zod.boolean().default(createDeviceBodyEnabledDefault),
   "webrtc_url": zod.string().nullish(),
-  "notes": zod.string().nullish()
+  "notes": zod.string().nullish(),
+  "ip_address": zod.string().nullish()
 })
 
 
@@ -68,9 +74,14 @@ export const GetDeviceResponse = zod.object({
   "enabled": zod.boolean(),
   "webrtc_url": zod.string().nullish(),
   "notes": zod.string().nullish(),
+  "ip_address": zod.string().nullish(),
   "current_status": zod.enum(['HEALTHY', 'WARNING', 'DOWN', 'UNKNOWN']),
   "last_checked_at": zod.string().nullish(),
-  "failure_reason": zod.string().nullish()
+  "failure_reason": zod.string().nullish(),
+  "remote_protocol": zod.string().nullish(),
+  "remote_capable": zod.boolean().optional(),
+  "remote_requires_pairing": zod.boolean().optional(),
+  "remote_paired": zod.boolean().optional()
 })
 
 
@@ -88,7 +99,8 @@ export const UpdateDeviceBody = zod.object({
   "srs_app": zod.string().nullish(),
   "enabled": zod.boolean().nullish(),
   "webrtc_url": zod.string().nullish(),
-  "notes": zod.string().nullish()
+  "notes": zod.string().nullish(),
+  "ip_address": zod.string().nullish()
 })
 
 export const UpdateDeviceResponse = zod.object({
@@ -100,9 +112,14 @@ export const UpdateDeviceResponse = zod.object({
   "enabled": zod.boolean(),
   "webrtc_url": zod.string().nullish(),
   "notes": zod.string().nullish(),
+  "ip_address": zod.string().nullish(),
   "current_status": zod.enum(['HEALTHY', 'WARNING', 'DOWN', 'UNKNOWN']),
   "last_checked_at": zod.string().nullish(),
-  "failure_reason": zod.string().nullish()
+  "failure_reason": zod.string().nullish(),
+  "remote_protocol": zod.string().nullish(),
+  "remote_capable": zod.boolean().optional(),
+  "remote_requires_pairing": zod.boolean().optional(),
+  "remote_paired": zod.boolean().optional()
 })
 
 
@@ -145,6 +162,112 @@ export const GetDeviceLatestCheckResponse = zod.object({
   "status": zod.enum(['HEALTHY', 'WARNING', 'DOWN', 'UNKNOWN']),
   "detail": zod.record(zod.string(), zod.unknown()).optional(),
   "frame_thumbnail_path": zod.string().nullish()
+})
+
+
+/**
+ * @summary Reachability and pairing status of a device's native remote
+ */
+export const GetRemoteStatusParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const GetRemoteStatusResponse = zod.object({
+  "protocol": zod.string().nullish(),
+  "capable": zod.boolean(),
+  "reachable": zod.boolean(),
+  "paired": zod.boolean(),
+  "requires_pairing": zod.boolean(),
+  "detail": zod.string().nullish()
+})
+
+
+/**
+ * @summary Supported keys and apps for a device's native remote
+ */
+export const GetRemoteCapabilitiesParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const GetRemoteCapabilitiesResponse = zod.object({
+  "protocol": zod.string().nullish(),
+  "capable": zod.boolean(),
+  "requires_pairing": zod.boolean(),
+  "supports_app_launch": zod.boolean(),
+  "keys": zod.array(zod.string()),
+  "apps": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string()
+}))
+})
+
+
+/**
+ * @summary Send a remote key press to a device
+ */
+export const SendRemoteKeyParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const SendRemoteKeyBody = zod.object({
+  "key": zod.string()
+})
+
+export const SendRemoteKeyResponse = zod.object({
+  "ok": zod.boolean(),
+  "detail": zod.string().nullish()
+})
+
+
+/**
+ * @summary Launch an app on a device
+ */
+export const LaunchRemoteAppParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const LaunchRemoteAppBody = zod.object({
+  "app_id": zod.string()
+})
+
+export const LaunchRemoteAppResponse = zod.object({
+  "ok": zod.boolean(),
+  "detail": zod.string().nullish()
+})
+
+
+/**
+ * @summary Begin pairing for a device's native remote
+ */
+export const BeginRemotePairingParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const BeginRemotePairingResponse = zod.object({
+  "ok": zod.boolean(),
+  "requires_pin": zod.boolean(),
+  "message": zod.string()
+})
+
+
+/**
+ * @summary Finish pairing for a device's native remote
+ */
+export const FinishRemotePairingParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const FinishRemotePairingBody = zod.object({
+  "pin": zod.string().nullish()
+})
+
+export const FinishRemotePairingResponse = zod.object({
+  "protocol": zod.string().nullish(),
+  "capable": zod.boolean(),
+  "reachable": zod.boolean(),
+  "paired": zod.boolean(),
+  "requires_pairing": zod.boolean(),
+  "detail": zod.string().nullish()
 })
 
 

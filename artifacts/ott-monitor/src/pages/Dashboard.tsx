@@ -4,6 +4,9 @@ import { useSse } from "@/hooks/use-sse";
 import { WebRtcPlayer } from "@/components/WebRtcPlayer";
 import { PlatformIcon } from "@/components/PlatformIcon";
 import { StatusBadge } from "@/components/StatusBadge";
+import { RemoteDialog } from "@/components/RemoteDialog";
+import { Button } from "@/components/ui/button";
+import { Gamepad2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -73,12 +76,30 @@ export default function Dashboard() {
                     <StatusBadge status={liveStatus} className="shrink-0" />
                   </CardHeader>
                   <CardContent className="p-0 flex flex-col">
-                    <div className="aspect-video bg-black relative">
+                    <div className="aspect-video bg-black relative group">
                       {device.enabled ? (
                         <WebRtcPlayer streamKey={device.srs_stream_key} webrtcUrl={device.webrtc_url} className="w-full h-full" />
                       ) : (
                         <div className="absolute inset-0 flex items-center justify-center text-muted-foreground text-xs uppercase tracking-widest">
                           Disabled
+                        </div>
+                      )}
+                      {device.remote_capable && (
+                        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <RemoteDialog
+                            deviceId={device.id}
+                            deviceName={device.name}
+                            trigger={
+                              <Button
+                                size="icon"
+                                variant="secondary"
+                                className="h-8 w-8 bg-background/80 backdrop-blur hover:bg-background"
+                                title="Open remote"
+                              >
+                                <Gamepad2 className="h-4 w-4" />
+                              </Button>
+                            }
+                          />
                         </div>
                       )}
                     </div>

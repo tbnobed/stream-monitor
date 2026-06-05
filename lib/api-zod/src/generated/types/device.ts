@@ -19,9 +19,16 @@ export interface Device {
   webrtc_url?: string | null;
   /** @nullable */
   notes?: string | null;
+  /** @nullable */
+  ip_address?: string | null;
   current_status: DeviceCurrentStatus;
   /** @nullable */
   last_checked_at?: string | null;
   /** @nullable */
   failure_reason?: string | null;
+  /** @nullable */
+  remote_protocol?: string | null;
+  remote_capable?: boolean;
+  remote_requires_pairing?: boolean;
+  remote_paired?: boolean;
 }

@@ -41,11 +41,18 @@ export interface Device {
   webrtc_url?: string | null;
   /** @nullable */
   notes?: string | null;
+  /** @nullable */
+  ip_address?: string | null;
   current_status: DeviceCurrentStatus;
   /** @nullable */
   last_checked_at?: string | null;
   /** @nullable */
   failure_reason?: string | null;
+  /** @nullable */
+  remote_protocol?: string | null;
+  remote_capable?: boolean;
+  remote_requires_pairing?: boolean;
+  remote_paired?: boolean;
 }
 
 export type DeviceInputPlatform = typeof DeviceInputPlatform[keyof typeof DeviceInputPlatform];
@@ -69,6 +76,8 @@ export interface DeviceInput {
   webrtc_url?: string | null;
   /** @nullable */
   notes?: string | null;
+  /** @nullable */
+  ip_address?: string | null;
 }
 
 /**
@@ -100,6 +109,8 @@ export interface DeviceUpdate {
   webrtc_url?: string | null;
   /** @nullable */
   notes?: string | null;
+  /** @nullable */
+  ip_address?: string | null;
 }
 
 export type HlsStreamCurrentStatus = typeof HlsStreamCurrentStatus[keyof typeof HlsStreamCurrentStatus];
@@ -288,6 +299,57 @@ export interface DashboardSummary {
   hls_healthy: number;
   hls_unknown?: number;
   open_incidents: number;
+}
+
+export interface RemoteKeyInput {
+  key: string;
+}
+
+export interface RemoteLaunchInput {
+  app_id: string;
+}
+
+export interface RemotePairFinishInput {
+  /** @nullable */
+  pin?: string | null;
+}
+
+export interface RemoteApp {
+  id: string;
+  name: string;
+}
+
+export interface RemoteStatus {
+  /** @nullable */
+  protocol?: string | null;
+  capable: boolean;
+  reachable: boolean;
+  paired: boolean;
+  requires_pairing: boolean;
+  /** @nullable */
+  detail?: string | null;
+}
+
+export interface RemoteCapabilities {
+  /** @nullable */
+  protocol?: string | null;
+  capable: boolean;
+  requires_pairing: boolean;
+  supports_app_launch: boolean;
+  keys: string[];
+  apps: RemoteApp[];
+}
+
+export interface RemoteActionResult {
+  ok: boolean;
+  /** @nullable */
+  detail?: string | null;
+}
+
+export interface RemotePairBegin {
+  ok: boolean;
+  requires_pin: boolean;
+  message: string;
 }
 
 export type ListCheckResultsParams = {

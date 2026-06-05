@@ -38,6 +38,13 @@ import type {
   ItemStats,
   ListCheckResultsParams,
   ListIncidentsParams,
+  RemoteActionResult,
+  RemoteCapabilities,
+  RemoteKeyInput,
+  RemoteLaunchInput,
+  RemotePairBegin,
+  RemotePairFinishInput,
+  RemoteStatus,
   Setting,
   SettingsUpdate
 } from './api.schemas';
@@ -656,6 +663,446 @@ export function useGetDeviceLatestCheck<TData = Awaited<ReturnType<typeof getDev
 
 
 
+
+export const getGetRemoteStatusUrl = (id: number,) => {
+
+
+
+
+  return `/api/devices/${id}/remote/status`
+}
+
+/**
+ * @summary Reachability and pairing status of a device's native remote
+ */
+export const getRemoteStatus = async (id: number, options?: RequestInit): Promise<RemoteStatus> => {
+
+  return customFetch<RemoteStatus>(getGetRemoteStatusUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetRemoteStatusQueryKey = (id: number,) => {
+    return [
+    `/api/devices/${id}/remote/status`
+    ] as const;
+    }
+
+
+export const getGetRemoteStatusQueryOptions = <TData = Awaited<ReturnType<typeof getRemoteStatus>>, TError = ErrorType<unknown>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getRemoteStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetRemoteStatusQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getRemoteStatus>>> = ({ signal }) => getRemoteStatus(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getRemoteStatus>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetRemoteStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getRemoteStatus>>>
+export type GetRemoteStatusQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Reachability and pairing status of a device's native remote
+ */
+
+export function useGetRemoteStatus<TData = Awaited<ReturnType<typeof getRemoteStatus>>, TError = ErrorType<unknown>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getRemoteStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetRemoteStatusQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetRemoteCapabilitiesUrl = (id: number,) => {
+
+
+
+
+  return `/api/devices/${id}/remote/capabilities`
+}
+
+/**
+ * @summary Supported keys and apps for a device's native remote
+ */
+export const getRemoteCapabilities = async (id: number, options?: RequestInit): Promise<RemoteCapabilities> => {
+
+  return customFetch<RemoteCapabilities>(getGetRemoteCapabilitiesUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetRemoteCapabilitiesQueryKey = (id: number,) => {
+    return [
+    `/api/devices/${id}/remote/capabilities`
+    ] as const;
+    }
+
+
+export const getGetRemoteCapabilitiesQueryOptions = <TData = Awaited<ReturnType<typeof getRemoteCapabilities>>, TError = ErrorType<unknown>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getRemoteCapabilities>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetRemoteCapabilitiesQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getRemoteCapabilities>>> = ({ signal }) => getRemoteCapabilities(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getRemoteCapabilities>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetRemoteCapabilitiesQueryResult = NonNullable<Awaited<ReturnType<typeof getRemoteCapabilities>>>
+export type GetRemoteCapabilitiesQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Supported keys and apps for a device's native remote
+ */
+
+export function useGetRemoteCapabilities<TData = Awaited<ReturnType<typeof getRemoteCapabilities>>, TError = ErrorType<unknown>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getRemoteCapabilities>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetRemoteCapabilitiesQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getSendRemoteKeyUrl = (id: number,) => {
+
+
+
+
+  return `/api/devices/${id}/remote/key`
+}
+
+/**
+ * @summary Send a remote key press to a device
+ */
+export const sendRemoteKey = async (id: number,
+    remoteKeyInput: RemoteKeyInput, options?: RequestInit): Promise<RemoteActionResult> => {
+
+  return customFetch<RemoteActionResult>(getSendRemoteKeyUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      remoteKeyInput,)
+  }
+);}
+
+
+
+
+export const getSendRemoteKeyMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendRemoteKey>>, TError,{id: number;data: BodyType<RemoteKeyInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof sendRemoteKey>>, TError,{id: number;data: BodyType<RemoteKeyInput>}, TContext> => {
+
+const mutationKey = ['sendRemoteKey'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof sendRemoteKey>>, {id: number;data: BodyType<RemoteKeyInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  sendRemoteKey(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SendRemoteKeyMutationResult = NonNullable<Awaited<ReturnType<typeof sendRemoteKey>>>
+    export type SendRemoteKeyMutationBody = BodyType<RemoteKeyInput>
+    export type SendRemoteKeyMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Send a remote key press to a device
+ */
+export const useSendRemoteKey = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendRemoteKey>>, TError,{id: number;data: BodyType<RemoteKeyInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof sendRemoteKey>>,
+        TError,
+        {id: number;data: BodyType<RemoteKeyInput>},
+        TContext
+      > => {
+      return useMutation(getSendRemoteKeyMutationOptions(options));
+    }
+
+export const getLaunchRemoteAppUrl = (id: number,) => {
+
+
+
+
+  return `/api/devices/${id}/remote/launch`
+}
+
+/**
+ * @summary Launch an app on a device
+ */
+export const launchRemoteApp = async (id: number,
+    remoteLaunchInput: RemoteLaunchInput, options?: RequestInit): Promise<RemoteActionResult> => {
+
+  return customFetch<RemoteActionResult>(getLaunchRemoteAppUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      remoteLaunchInput,)
+  }
+);}
+
+
+
+
+export const getLaunchRemoteAppMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof launchRemoteApp>>, TError,{id: number;data: BodyType<RemoteLaunchInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof launchRemoteApp>>, TError,{id: number;data: BodyType<RemoteLaunchInput>}, TContext> => {
+
+const mutationKey = ['launchRemoteApp'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof launchRemoteApp>>, {id: number;data: BodyType<RemoteLaunchInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  launchRemoteApp(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LaunchRemoteAppMutationResult = NonNullable<Awaited<ReturnType<typeof launchRemoteApp>>>
+    export type LaunchRemoteAppMutationBody = BodyType<RemoteLaunchInput>
+    export type LaunchRemoteAppMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Launch an app on a device
+ */
+export const useLaunchRemoteApp = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof launchRemoteApp>>, TError,{id: number;data: BodyType<RemoteLaunchInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof launchRemoteApp>>,
+        TError,
+        {id: number;data: BodyType<RemoteLaunchInput>},
+        TContext
+      > => {
+      return useMutation(getLaunchRemoteAppMutationOptions(options));
+    }
+
+export const getBeginRemotePairingUrl = (id: number,) => {
+
+
+
+
+  return `/api/devices/${id}/remote/pair/begin`
+}
+
+/**
+ * @summary Begin pairing for a device's native remote
+ */
+export const beginRemotePairing = async (id: number, options?: RequestInit): Promise<RemotePairBegin> => {
+
+  return customFetch<RemotePairBegin>(getBeginRemotePairingUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getBeginRemotePairingMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof beginRemotePairing>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof beginRemotePairing>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['beginRemotePairing'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof beginRemotePairing>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  beginRemotePairing(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type BeginRemotePairingMutationResult = NonNullable<Awaited<ReturnType<typeof beginRemotePairing>>>
+
+    export type BeginRemotePairingMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Begin pairing for a device's native remote
+ */
+export const useBeginRemotePairing = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof beginRemotePairing>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof beginRemotePairing>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getBeginRemotePairingMutationOptions(options));
+    }
+
+export const getFinishRemotePairingUrl = (id: number,) => {
+
+
+
+
+  return `/api/devices/${id}/remote/pair/finish`
+}
+
+/**
+ * @summary Finish pairing for a device's native remote
+ */
+export const finishRemotePairing = async (id: number,
+    remotePairFinishInput: RemotePairFinishInput, options?: RequestInit): Promise<RemoteStatus> => {
+
+  return customFetch<RemoteStatus>(getFinishRemotePairingUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      remotePairFinishInput,)
+  }
+);}
+
+
+
+
+export const getFinishRemotePairingMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof finishRemotePairing>>, TError,{id: number;data: BodyType<RemotePairFinishInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof finishRemotePairing>>, TError,{id: number;data: BodyType<RemotePairFinishInput>}, TContext> => {
+
+const mutationKey = ['finishRemotePairing'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof finishRemotePairing>>, {id: number;data: BodyType<RemotePairFinishInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  finishRemotePairing(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type FinishRemotePairingMutationResult = NonNullable<Awaited<ReturnType<typeof finishRemotePairing>>>
+    export type FinishRemotePairingMutationBody = BodyType<RemotePairFinishInput>
+    export type FinishRemotePairingMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Finish pairing for a device's native remote
+ */
+export const useFinishRemotePairing = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof finishRemotePairing>>, TError,{id: number;data: BodyType<RemotePairFinishInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof finishRemotePairing>>,
+        TError,
+        {id: number;data: BodyType<RemotePairFinishInput>},
+        TContext
+      > => {
+      return useMutation(getFinishRemotePairingMutationOptions(options));
+    }
 
 export const getListHlsStreamsUrl = () => {
 

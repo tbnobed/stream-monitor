@@ -20,6 +20,8 @@ class Device(Base):
     failure_reason = Column(Text, nullable=True)
     consecutive_status_count = Column(Integer, nullable=False, default=0)
     pending_status = Column(String(20), nullable=True)
+    ip_address = Column(String(64), nullable=True)
+    remote_config = Column(JSON, nullable=True)
 
     check_results = relationship("CheckResult", back_populates="device", cascade="all, delete-orphan")
     incidents = relationship("Incident", back_populates="device", cascade="all, delete-orphan")

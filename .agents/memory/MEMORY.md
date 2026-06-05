@@ -1,1 +1,2 @@
 - [SRS WHEP playback quirks](srs-whep-playback.md) — 3 things needed for WebRTC tiles to play: `/whep/` slash in URL, strip Location header, retry transient 502s
+- [Native OTT remote control](native-remote-control.md) — pairing sessions are in-memory (lost on restart), `chromecast`=Google TV not cast dongles, drivers lazy-import optional libs

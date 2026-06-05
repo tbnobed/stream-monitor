@@ -23,6 +23,8 @@ tags:
     description: Aggregated dashboard data
   - name: guacamole
     description: Guacamole remote session management
+  - name: remote
+    description: Native OTT device remote control
 paths:
   /healthz:
     get:
@@ -170,6 +172,139 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/CheckResult"
+
+  # Native remote control
+  /devices/{id}/remote/status:
+    get:
+      operationId: getRemoteStatus
+      tags: [remote]
+      summary: Reachability and pairing status of a device's native remote
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Remote status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RemoteStatus"
+
+  /devices/{id}/remote/capabilities:
+    get:
+      operationId: getRemoteCapabilities
+      tags: [remote]
+      summary: Supported keys and apps for a device's native remote
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Remote capabilities
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RemoteCapabilities"
+
+  /devices/{id}/remote/key:
+    post:
+      operationId: sendRemoteKey
+      tags: [remote]
+      summary: Send a remote key press to a device
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RemoteKeyInput"
+      responses:
+        "200":
+          description: Action result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RemoteActionResult"
+
+  /devices/{id}/remote/launch:
+    post:
+      operationId: launchRemoteApp
+      tags: [remote]
+      summary: Launch an app on a device
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RemoteLaunchInput"
+      responses:
+        "200":
+          description: Action result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RemoteActionResult"
+
+  /devices/{id}/remote/pair/begin:
+    post:
+      operationId: beginRemotePairing
+      tags: [remote]
+      summary: Begin pairing for a device's native remote
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Pairing started
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RemotePairBegin"
+
+  /devices/{id}/remote/pair/finish:
+    post:
+      operationId: finishRemotePairing
+      tags: [remote]
+      summary: Finish pairing for a device's native remote
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RemotePairFinishInput"
+      responses:
+        "200":
+          description: Remote status after pairing
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RemoteStatus"
 
   # HLS Streams
   /hls-streams:
@@ -586,6 +721,8 @@ components:
           type: ["string", "null"]
         notes:
           type: ["string", "null"]
+        ip_address:
+          type: ["string", "null"]
         current_status:
           type: string
           enum: [HEALTHY, WARNING, DOWN, UNKNOWN]
@@ -593,6 +730,14 @@ components:
           type: ["string", "null"]
         failure_reason:
           type: ["string", "null"]
+        remote_protocol:
+          type: ["string", "null"]
+        remote_capable:
+          type: boolean
+        remote_requires_pairing:
+          type: boolean
+        remote_paired:
+          type: boolean
 
     DeviceInput:
       type: object
@@ -615,6 +760,8 @@ components:
           type: ["string", "null"]
         notes:
           type: ["string", "null"]
+        ip_address:
+          type: ["string", "null"]
 
     DeviceUpdate:
       type: object
@@ -633,6 +780,8 @@ components:
         webrtc_url:
           type: ["string", "null"]
         notes:
+          type: ["string", "null"]
+        ip_address:
           type: ["string", "null"]
 
     HlsStream:
@@ -859,3 +1008,90 @@ components:
           type: integer
         open_incidents:
           type: integer
+
+    RemoteKeyInput:
+      type: object
+      required: [key]
+      properties:
+        key:
+          type: string
+
+    RemoteLaunchInput:
+      type: object
+      required: [app_id]
+      properties:
+        app_id:
+          type: string
+
+    RemotePairFinishInput:
+      type: object
+      properties:
+        pin:
+          type: ["string", "null"]
+
+    RemoteApp:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+
+    RemoteStatus:
+      type: object
+      required: [capable, reachable, paired, requires_pairing]
+      properties:
+        protocol:
+          type: ["string", "null"]
+        capable:
+          type: boolean
+        reachable:
+          type: boolean
+        paired:
+          type: boolean
+        requires_pairing:
+          type: boolean
+        detail:
+          type: ["string", "null"]
+
+    RemoteCapabilities:
+      type: object
+      required: [capable, requires_pairing, supports_app_launch, keys, apps]
+      properties:
+        protocol:
+          type: ["string", "null"]
+        capable:
+          type: boolean
+        requires_pairing:
+          type: boolean
+        supports_app_launch:
+          type: boolean
+        keys:
+          type: array
+          items:
+            type: string
+        apps:
+          type: array
+          items:
+            $ref: "#/components/schemas/RemoteApp"
+
+    RemoteActionResult:
+      type: object
+      required: [ok]
+      properties:
+        ok:
+          type: boolean
+        detail:
+          type: ["string", "null"]
+
+    RemotePairBegin:
+      type: object
+      required: [ok, requires_pin, message]
+      properties:
+        ok:
+          type: boolean
+        requires_pin:
+          type: boolean
+        message:
+          type: string

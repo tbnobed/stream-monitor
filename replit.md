@@ -1,6 +1,6 @@
 # OTT Stream Monitor
 
-A full-stack broadcast NOC (Network Operations Center) tool that monitors live OTT device streams (Roku, Fire TV, Chromecast, Apple TV) via WebRTC and HLS source streams. Replaces a WordPress monitoring wall.
+A full-stack broadcast NOC (Network Operations Center) tool that monitors live OTT device streams (Roku, Fire TV, Chromecast, Apple TV) via WebRTC and HLS source streams, with native on-screen remote control of each device. Replaces a WordPress monitoring wall.
 
 ## Run & Operate
 
@@ -24,7 +24,8 @@ A full-stack broadcast NOC (Network Operations Center) tool that monitors live O
   - `main.py` — app entrypoint, startup (DB init, seeding, background workers)
   - `models.py` — SQLAlchemy models (devices, hls_streams, check_results, incidents, settings)
   - `schemas.py` — Pydantic request/response schemas
-  - `routers/` — API route handlers (devices, hls_streams, incidents, settings, dashboard, proxy, sse)
+  - `routers/` — API route handlers (devices, hls_streams, incidents, settings, dashboard, proxy, sse, remote)
+  - `services/remote/` — Native remote drivers (roku/ECP, firetv/ADB, appletv/Companion, chromecast/Google-TV androidtv) + `get_driver` factory
   - `workers/device_worker.py` — Device health loop (SRS API + ffmpeg)
   - `workers/hls_worker.py` — HLS health loop (manifest, rendition, segment, ffprobe, DRM)
   - `services/incident_service.py` — Shared debounce + incident open/close logic
@@ -35,7 +36,8 @@ A full-stack broadcast NOC (Network Operations Center) tool that monitors live O
 
 ## Architecture decisions
 
-- **HTTPS mixed-content proxy**: All HTTP upstreams (SRS WHEP, SRS API, Guacamole) are proxied through `/api/proxy/*` so the browser only ever talks HTTPS to our origin. Never hardcode upstream URLs in frontend.
+- **HTTPS mixed-content proxy**: All HTTP upstreams (SRS WHEP, SRS API) are proxied through `/api/proxy/*` so the browser only ever talks HTTPS to our origin. Never hardcode upstream URLs in frontend.
+- **Native remote control**: The backend talks directly to each device's LAN IP using its native protocol (Roku ECP, Fire TV ADB, Google TV/Chromecast androidtv, Apple TV Companion). Devices and the app server must share one private LAN. Drivers live in `services/remote/` and use lazy imports so a missing optional library disables only that platform — it never crashes startup. Sensitive pairing creds live in `Device.remote_config` (JSON) and are never exposed in API responses; only `ip_address` and computed `remote_*` flags are returned.
 - **Data-driven**: Every device, HLS stream, endpoint URL, and webhook is in PostgreSQL. Operators use the UI — never source code — to add/change items.
 - **Debounce**: Status only changes officially after 2 consecutive checks agree (kills flapping). Configurable in Settings.
 - **Worker isolation**: Device and HLS workers run as independent async background tasks sharing one DB, incident service, SSE feed, and alerting pipeline.
@@ -44,7 +46,7 @@ A full-stack broadcast NOC (Network Operations Center) tool that monitors live O
 
 ## Product
 
-- **Monitoring Wall** (`/`): Dense dark grid of device tiles with live WebRTC video, status badges (HEALTHY/WARNING/DOWN/UNKNOWN), bitrate info, and a collapsible Guacamole remote control panel.
+- **Monitoring Wall** (`/`): Dense dark grid of device tiles with live WebRTC video, status badges (HEALTHY/WARNING/DOWN/UNKNOWN), bitrate info, and a hover-to-reveal native remote control (D-pad, transport, volume, app shortcuts) per tile.
 - **Source Streams** (tab on wall): HLS health cards for source stream monitoring.
 - **Device Registry** (`/devices`): Full CRUD for OTT devices (Roku, Fire TV, Chromecast, Apple TV, other).
 - **HLS Stream Registry** (`/hls-streams`): Full CRUD for HLS source streams.
@@ -93,6 +95,7 @@ _Populate as you build._
 - The backend runs from `artifacts/api-server/backend/` with absolute paths — do not change the artifact.toml run command to relative paths
 - The `.deps_installed` sentinel file in `backend/` prevents pip re-installs on every restart
 - SQLAlchemy models auto-create tables on startup — Alembic migrations not yet wired for production; use the Replit Publish flow for schema changes
+- `create_all` does NOT alter existing tables. New columns on an existing model (e.g. `devices.ip_address`, `devices.remote_config`) must be added with a manual `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` against the dev DB, or the API server crashes on boot
 
 ## Pointers
 

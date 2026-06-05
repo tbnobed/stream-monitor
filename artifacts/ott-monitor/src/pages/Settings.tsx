@@ -57,10 +57,10 @@ export default function Settings() {
           <Card className="bg-card">
             <CardHeader>
               <CardTitle>Core Endpoints</CardTitle>
-              <CardDescription>Connection details for SRS and Guacamole.</CardDescription>
+              <CardDescription>Connection details for SRS.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {settings?.filter(s => s.key.includes('srs_') || s.key.includes('guac')).map(setting => (
+              {settings?.filter(s => s.key.includes('srs_')).map(setting => (
                 <FormField
                   key={setting.key}
                   control={form.control}

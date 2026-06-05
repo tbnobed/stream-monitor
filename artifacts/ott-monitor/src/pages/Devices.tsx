@@ -28,7 +28,8 @@ import {
 } from '@/components/ui/select';
 import { PlatformIcon } from '@/components/PlatformIcon';
 import { StatusBadge } from '@/components/StatusBadge';
-import { Plus, Edit2, Trash2 } from 'lucide-react';
+import { RemoteDialog } from '@/components/RemoteDialog';
+import { Plus, Edit2, Trash2, Gamepad2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const deviceSchema = z.object({
@@ -38,6 +39,7 @@ const deviceSchema = z.object({
   srs_app: z.string().default("live"),
   enabled: z.boolean().default(true),
   webrtc_url: z.string().optional().nullable(),
+  ip_address: z.string().optional().nullable(),
   notes: z.string().optional().nullable(),
 });
 
@@ -63,6 +65,7 @@ export default function Devices() {
       srs_app: 'live',
       enabled: true,
       webrtc_url: '',
+      ip_address: '',
       notes: '',
     }
   });
@@ -76,6 +79,7 @@ export default function Devices() {
       srs_app: 'live',
       enabled: true,
       webrtc_url: '',
+      ip_address: '',
       notes: '',
     });
     setDialogOpen(true);
@@ -90,6 +94,7 @@ export default function Devices() {
       srs_app: device.srs_app || 'live',
       enabled: device.enabled,
       webrtc_url: device.webrtc_url || '',
+      ip_address: device.ip_address || '',
       notes: device.notes || '',
     });
     setDialogOpen(true);
@@ -212,6 +217,19 @@ export default function Devices() {
                   />
                   <FormField
                     control={form.control}
+                    name="ip_address"
+                    render={({ field }) => (
+                      <FormItem className="col-span-2">
+                        <FormLabel>Device LAN IP (for native remote)</FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g. 192.168.1.50" {...field} value={field.value || ''} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
                     name="webrtc_url"
                     render={({ field }) => (
                       <FormItem className="col-span-2">
@@ -302,7 +320,18 @@ export default function Devices() {
                   <TableCell>
                     <Switch checked={device.enabled} disabled />
                   </TableCell>
-                  <TableCell className="text-right space-x-2">
+                  <TableCell className="text-right space-x-2 whitespace-nowrap">
+                    {device.remote_capable && (
+                      <RemoteDialog
+                        deviceId={device.id}
+                        deviceName={device.name}
+                        trigger={
+                          <Button variant="ghost" size="icon" title="Native remote">
+                            <Gamepad2 className={`w-4 h-4 ${device.remote_paired ? 'text-status-healthy' : 'text-primary'}`} />
+                          </Button>
+                        }
+                      />
+                    )}
                     <Button variant="ghost" size="icon" onClick={() => openEditDialog(device)}>
                       <Edit2 className="w-4 h-4 text-muted-foreground" />
                     </Button>

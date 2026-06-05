@@ -22,4 +22,6 @@ export interface DeviceUpdate {
   webrtc_url?: string | null;
   /** @nullable */
   notes?: string | null;
+  /** @nullable */
+  ip_address?: string | null;
 }
