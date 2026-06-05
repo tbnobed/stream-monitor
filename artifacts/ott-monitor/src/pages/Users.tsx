@@ -151,7 +151,7 @@ export default function Users() {
   });
 
   return (
-    <div className="container max-w-5xl px-4 py-6">
+    <div className="max-w-5xl mx-auto p-6">
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Users</h1>
