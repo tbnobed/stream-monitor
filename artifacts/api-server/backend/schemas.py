@@ -9,7 +9,7 @@ class DeviceBase(BaseModel):
     srs_stream_key: str
     srs_app: str = "live"
     enabled: bool = True
-    guacamole_url: Optional[str] = None
+    webrtc_url: Optional[str] = None
     notes: Optional[str] = None
 
 
@@ -23,7 +23,7 @@ class DeviceUpdate(BaseModel):
     srs_stream_key: Optional[str] = None
     srs_app: Optional[str] = None
     enabled: Optional[bool] = None
-    guacamole_url: Optional[str] = None
+    webrtc_url: Optional[str] = None
     notes: Optional[str] = None
 
 
@@ -101,6 +101,31 @@ class IncidentOut(BaseModel):
 
 class AcknowledgeInput(BaseModel):
     acknowledged_by: str
+
+
+class GuacamoleSessionBase(BaseModel):
+    name: str
+    url: str
+    notes: Optional[str] = None
+    enabled: bool = True
+
+
+class GuacamoleSessionInput(GuacamoleSessionBase):
+    pass
+
+
+class GuacamoleSessionUpdate(BaseModel):
+    name: Optional[str] = None
+    url: Optional[str] = None
+    notes: Optional[str] = None
+    enabled: Optional[bool] = None
+
+
+class GuacamoleSessionOut(GuacamoleSessionBase):
+    id: int
+
+    class Config:
+        from_attributes = True
 
 
 class SettingOut(BaseModel):

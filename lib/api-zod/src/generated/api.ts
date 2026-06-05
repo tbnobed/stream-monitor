@@ -26,7 +26,7 @@ export const ListDevicesResponseItem = zod.object({
   "srs_stream_key": zod.string(),
   "srs_app": zod.string(),
   "enabled": zod.boolean(),
-  "guacamole_url": zod.string().nullish(),
+  "webrtc_url": zod.string().nullish(),
   "notes": zod.string().nullish(),
   "current_status": zod.enum(['HEALTHY', 'WARNING', 'DOWN', 'UNKNOWN']),
   "last_checked_at": zod.string().nullish(),
@@ -47,7 +47,7 @@ export const CreateDeviceBody = zod.object({
   "srs_stream_key": zod.string(),
   "srs_app": zod.string().default(createDeviceBodySrsAppDefault),
   "enabled": zod.boolean().default(createDeviceBodyEnabledDefault),
-  "guacamole_url": zod.string().nullish(),
+  "webrtc_url": zod.string().nullish(),
   "notes": zod.string().nullish()
 })
 
@@ -66,7 +66,7 @@ export const GetDeviceResponse = zod.object({
   "srs_stream_key": zod.string(),
   "srs_app": zod.string(),
   "enabled": zod.boolean(),
-  "guacamole_url": zod.string().nullish(),
+  "webrtc_url": zod.string().nullish(),
   "notes": zod.string().nullish(),
   "current_status": zod.enum(['HEALTHY', 'WARNING', 'DOWN', 'UNKNOWN']),
   "last_checked_at": zod.string().nullish(),
@@ -87,7 +87,7 @@ export const UpdateDeviceBody = zod.object({
   "srs_stream_key": zod.string().nullish(),
   "srs_app": zod.string().nullish(),
   "enabled": zod.boolean().nullish(),
-  "guacamole_url": zod.string().nullish(),
+  "webrtc_url": zod.string().nullish(),
   "notes": zod.string().nullish()
 })
 
@@ -98,7 +98,7 @@ export const UpdateDeviceResponse = zod.object({
   "srs_stream_key": zod.string(),
   "srs_app": zod.string(),
   "enabled": zod.boolean(),
-  "guacamole_url": zod.string().nullish(),
+  "webrtc_url": zod.string().nullish(),
   "notes": zod.string().nullish(),
   "current_status": zod.enum(['HEALTHY', 'WARNING', 'DOWN', 'UNKNOWN']),
   "last_checked_at": zod.string().nullish(),
@@ -418,6 +418,63 @@ export const GetDashboardSummaryResponse = zod.object({
   "hls_healthy": zod.number(),
   "hls_unknown": zod.number().optional(),
   "open_incidents": zod.number()
+})
+
+
+/**
+ * @summary List all Guacamole sessions
+ */
+export const ListGuacamoleSessionsResponseItem = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "url": zod.string(),
+  "notes": zod.string().nullish(),
+  "enabled": zod.boolean()
+})
+export const ListGuacamoleSessionsResponse = zod.array(ListGuacamoleSessionsResponseItem)
+
+
+/**
+ * @summary Create a Guacamole session
+ */
+export const createGuacamoleSessionBodyEnabledDefault = true;
+
+export const CreateGuacamoleSessionBody = zod.object({
+  "name": zod.string(),
+  "url": zod.string(),
+  "notes": zod.string().nullish(),
+  "enabled": zod.boolean().default(createGuacamoleSessionBodyEnabledDefault)
+})
+
+
+/**
+ * @summary Update a Guacamole session
+ */
+export const UpdateGuacamoleSessionParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const UpdateGuacamoleSessionBody = zod.object({
+  "name": zod.string().nullish(),
+  "url": zod.string().nullish(),
+  "notes": zod.string().nullish(),
+  "enabled": zod.boolean().nullish()
+})
+
+export const UpdateGuacamoleSessionResponse = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "url": zod.string(),
+  "notes": zod.string().nullish(),
+  "enabled": zod.boolean()
+})
+
+
+/**
+ * @summary Delete a Guacamole session
+ */
+export const DeleteGuacamoleSessionParams = zod.object({
+  "id": zod.coerce.number()
 })
 
 

@@ -1,7 +1,7 @@
 import React from "react";
 import { Link, useLocation } from "wouter";
 import { useGetDashboardSummary } from "@workspace/api-client-react";
-import { Activity, LayoutDashboard, Monitor, PlaySquare, AlertTriangle, Settings, Radio } from "lucide-react";
+import { Activity, LayoutDashboard, Monitor, PlaySquare, AlertTriangle, Settings, Radio, Terminal } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function Nav() {
@@ -15,6 +15,7 @@ export function Nav() {
     { href: "/devices", label: "Devices", icon: Monitor },
     { href: "/hls-streams", label: "HLS Streams", icon: PlaySquare },
     { href: "/incidents", label: "Incidents", icon: AlertTriangle },
+    { href: "/guacamole", label: "Guacamole", icon: Terminal },
     { href: "/settings", label: "Settings", icon: Settings },
   ];
 

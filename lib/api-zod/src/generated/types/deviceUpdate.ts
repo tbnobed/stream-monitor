@@ -19,7 +19,7 @@ export interface DeviceUpdate {
   /** @nullable */
   enabled?: boolean | null;
   /** @nullable */
-  guacamole_url?: string | null;
+  webrtc_url?: string | null;
   /** @nullable */
   notes?: string | null;
 }

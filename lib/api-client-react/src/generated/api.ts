@@ -27,6 +27,9 @@ import type {
   DeviceInput,
   DeviceUpdate,
   GetDashboardRecentIncidentsParams,
+  GuacamoleSession,
+  GuacamoleSessionInput,
+  GuacamoleSessionUpdate,
   HealthStatus,
   HlsStream,
   HlsStreamInput,
@@ -1721,6 +1724,296 @@ export function useGetDashboardSummary<TData = Awaited<ReturnType<typeof getDash
 
 
 
+
+export const getListGuacamoleSessionsUrl = () => {
+
+
+
+
+  return `/api/guacamole-sessions`
+}
+
+/**
+ * @summary List all Guacamole sessions
+ */
+export const listGuacamoleSessions = async ( options?: RequestInit): Promise<GuacamoleSession[]> => {
+
+  return customFetch<GuacamoleSession[]>(getListGuacamoleSessionsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListGuacamoleSessionsQueryKey = () => {
+    return [
+    `/api/guacamole-sessions`
+    ] as const;
+    }
+
+
+export const getListGuacamoleSessionsQueryOptions = <TData = Awaited<ReturnType<typeof listGuacamoleSessions>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listGuacamoleSessions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListGuacamoleSessionsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listGuacamoleSessions>>> = ({ signal }) => listGuacamoleSessions({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listGuacamoleSessions>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListGuacamoleSessionsQueryResult = NonNullable<Awaited<ReturnType<typeof listGuacamoleSessions>>>
+export type ListGuacamoleSessionsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List all Guacamole sessions
+ */
+
+export function useListGuacamoleSessions<TData = Awaited<ReturnType<typeof listGuacamoleSessions>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listGuacamoleSessions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListGuacamoleSessionsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getCreateGuacamoleSessionUrl = () => {
+
+
+
+
+  return `/api/guacamole-sessions`
+}
+
+/**
+ * @summary Create a Guacamole session
+ */
+export const createGuacamoleSession = async (guacamoleSessionInput: GuacamoleSessionInput, options?: RequestInit): Promise<GuacamoleSession> => {
+
+  return customFetch<GuacamoleSession>(getCreateGuacamoleSessionUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      guacamoleSessionInput,)
+  }
+);}
+
+
+
+
+export const getCreateGuacamoleSessionMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createGuacamoleSession>>, TError,{data: BodyType<GuacamoleSessionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createGuacamoleSession>>, TError,{data: BodyType<GuacamoleSessionInput>}, TContext> => {
+
+const mutationKey = ['createGuacamoleSession'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createGuacamoleSession>>, {data: BodyType<GuacamoleSessionInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createGuacamoleSession(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateGuacamoleSessionMutationResult = NonNullable<Awaited<ReturnType<typeof createGuacamoleSession>>>
+    export type CreateGuacamoleSessionMutationBody = BodyType<GuacamoleSessionInput>
+    export type CreateGuacamoleSessionMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Create a Guacamole session
+ */
+export const useCreateGuacamoleSession = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createGuacamoleSession>>, TError,{data: BodyType<GuacamoleSessionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createGuacamoleSession>>,
+        TError,
+        {data: BodyType<GuacamoleSessionInput>},
+        TContext
+      > => {
+      return useMutation(getCreateGuacamoleSessionMutationOptions(options));
+    }
+
+export const getUpdateGuacamoleSessionUrl = (id: number,) => {
+
+
+
+
+  return `/api/guacamole-sessions/${id}`
+}
+
+/**
+ * @summary Update a Guacamole session
+ */
+export const updateGuacamoleSession = async (id: number,
+    guacamoleSessionUpdate: GuacamoleSessionUpdate, options?: RequestInit): Promise<GuacamoleSession> => {
+
+  return customFetch<GuacamoleSession>(getUpdateGuacamoleSessionUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      guacamoleSessionUpdate,)
+  }
+);}
+
+
+
+
+export const getUpdateGuacamoleSessionMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateGuacamoleSession>>, TError,{id: number;data: BodyType<GuacamoleSessionUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateGuacamoleSession>>, TError,{id: number;data: BodyType<GuacamoleSessionUpdate>}, TContext> => {
+
+const mutationKey = ['updateGuacamoleSession'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateGuacamoleSession>>, {id: number;data: BodyType<GuacamoleSessionUpdate>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateGuacamoleSession(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateGuacamoleSessionMutationResult = NonNullable<Awaited<ReturnType<typeof updateGuacamoleSession>>>
+    export type UpdateGuacamoleSessionMutationBody = BodyType<GuacamoleSessionUpdate>
+    export type UpdateGuacamoleSessionMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Update a Guacamole session
+ */
+export const useUpdateGuacamoleSession = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateGuacamoleSession>>, TError,{id: number;data: BodyType<GuacamoleSessionUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateGuacamoleSession>>,
+        TError,
+        {id: number;data: BodyType<GuacamoleSessionUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdateGuacamoleSessionMutationOptions(options));
+    }
+
+export const getDeleteGuacamoleSessionUrl = (id: number,) => {
+
+
+
+
+  return `/api/guacamole-sessions/${id}`
+}
+
+/**
+ * @summary Delete a Guacamole session
+ */
+export const deleteGuacamoleSession = async (id: number, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getDeleteGuacamoleSessionUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getDeleteGuacamoleSessionMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteGuacamoleSession>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteGuacamoleSession>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['deleteGuacamoleSession'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteGuacamoleSession>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  deleteGuacamoleSession(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteGuacamoleSessionMutationResult = NonNullable<Awaited<ReturnType<typeof deleteGuacamoleSession>>>
+
+    export type DeleteGuacamoleSessionMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Delete a Guacamole session
+ */
+export const useDeleteGuacamoleSession = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteGuacamoleSession>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteGuacamoleSession>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getDeleteGuacamoleSessionMutationOptions(options));
+    }
 
 export const getGetDashboardRecentIncidentsUrl = (params?: GetDashboardRecentIncidentsParams,) => {
   const normalizedParams = new URLSearchParams();

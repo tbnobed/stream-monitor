@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 
 interface WebRtcPlayerProps {
   streamKey: string;
+  webrtcUrl?: string | null;
   className?: string;
 }
 
@@ -14,7 +15,7 @@ declare global {
   }
 }
 
-export function WebRtcPlayer({ streamKey, className }: WebRtcPlayerProps) {
+export function WebRtcPlayer({ streamKey, webrtcUrl, className }: WebRtcPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const playerRef = useRef<any>(null);
   const [muted, setMuted] = useState(true);
@@ -34,7 +35,7 @@ export function WebRtcPlayer({ streamKey, className }: WebRtcPlayerProps) {
       playerRef.current = player;
       
       videoRef.current.srcObject = player.stream;
-      const url = `/api/proxy/whep?stream=${streamKey}`;
+      const url = webrtcUrl || `/api/proxy/whep?stream=${streamKey}`;
       await player.play(url);
       
       if (videoRef.current) {
@@ -54,7 +55,7 @@ export function WebRtcPlayer({ streamKey, className }: WebRtcPlayerProps) {
         try { playerRef.current.close(); } catch(e) {}
       }
     };
-  }, [streamKey]);
+  }, [streamKey, webrtcUrl]);
 
   return (
     <div className={cn("relative group bg-black overflow-hidden rounded-md flex items-center justify-center", className)}>

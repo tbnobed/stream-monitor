@@ -13,7 +13,7 @@ class Device(Base):
     srs_stream_key = Column(String(255), nullable=False)
     srs_app = Column(String(100), nullable=False, default="live")
     enabled = Column(Boolean, nullable=False, default=True)
-    guacamole_url = Column(Text, nullable=True)
+    webrtc_url = Column(Text, nullable=True)
     notes = Column(Text, nullable=True)
     current_status = Column(String(20), nullable=False, default="UNKNOWN")
     last_checked_at = Column(DateTime(timezone=True), nullable=True)
@@ -76,6 +76,16 @@ class Incident(Base):
 
     device = relationship("Device", back_populates="incidents")
     hls_stream = relationship("HlsStream", back_populates="incidents")
+
+
+class GuacamoleSession(Base):
+    __tablename__ = "guacamole_sessions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(255), nullable=False)
+    url = Column(Text, nullable=False)
+    notes = Column(Text, nullable=True)
+    enabled = Column(Boolean, nullable=False, default=True)
 
 
 class Setting(Base):

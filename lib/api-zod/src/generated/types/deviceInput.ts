@@ -14,7 +14,7 @@ export interface DeviceInput {
   srs_app?: string;
   enabled?: boolean;
   /** @nullable */
-  guacamole_url?: string | null;
+  webrtc_url?: string | null;
   /** @nullable */
   notes?: string | null;
 }

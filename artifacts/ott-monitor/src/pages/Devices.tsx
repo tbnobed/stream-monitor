@@ -37,7 +37,7 @@ const deviceSchema = z.object({
   srs_stream_key: z.string().min(1, "Stream key is required"),
   srs_app: z.string().default("live"),
   enabled: z.boolean().default(true),
-  guacamole_url: z.string().optional().nullable(),
+  webrtc_url: z.string().optional().nullable(),
   notes: z.string().optional().nullable(),
 });
 
@@ -62,7 +62,7 @@ export default function Devices() {
       srs_stream_key: '',
       srs_app: 'live',
       enabled: true,
-      guacamole_url: '',
+      webrtc_url: '',
       notes: '',
     }
   });
@@ -75,7 +75,7 @@ export default function Devices() {
       srs_stream_key: '',
       srs_app: 'live',
       enabled: true,
-      guacamole_url: '',
+      webrtc_url: '',
       notes: '',
     });
     setDialogOpen(true);
@@ -89,7 +89,7 @@ export default function Devices() {
       srs_stream_key: device.srs_stream_key,
       srs_app: device.srs_app || 'live',
       enabled: device.enabled,
-      guacamole_url: device.guacamole_url || '',
+      webrtc_url: device.webrtc_url || '',
       notes: device.notes || '',
     });
     setDialogOpen(true);
@@ -212,12 +212,12 @@ export default function Devices() {
                   />
                   <FormField
                     control={form.control}
-                    name="guacamole_url"
+                    name="webrtc_url"
                     render={({ field }) => (
                       <FormItem className="col-span-2">
-                        <FormLabel>Guacamole URL (Optional)</FormLabel>
+                        <FormLabel>WebRTC URL (Optional)</FormLabel>
                         <FormControl>
-                          <Input placeholder="/api/proxy/guacamole/..." {...field} value={field.value || ''} />
+                          <Input placeholder="Leave blank to use default WHEP proxy pattern" {...field} value={field.value || ''} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>

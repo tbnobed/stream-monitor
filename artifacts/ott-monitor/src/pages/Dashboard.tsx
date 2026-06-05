@@ -6,7 +6,6 @@ import { PlatformIcon } from "@/components/PlatformIcon";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { GuacamolePanel } from "@/components/GuacamolePanel";
 
 export default function Dashboard() {
   const { data: summary } = useGetDashboardSummary({ query: { refetchInterval: 15000 } });
@@ -76,7 +75,7 @@ export default function Dashboard() {
                   <CardContent className="p-0 flex flex-col">
                     <div className="aspect-video bg-black relative">
                       {device.enabled ? (
-                        <WebRtcPlayer streamKey={device.srs_stream_key} className="w-full h-full" />
+                        <WebRtcPlayer streamKey={device.srs_stream_key} webrtcUrl={device.webrtc_url} className="w-full h-full" />
                       ) : (
                         <div className="absolute inset-0 flex items-center justify-center text-muted-foreground text-xs uppercase tracking-widest">
                           Disabled
@@ -126,7 +125,6 @@ export default function Dashboard() {
         </TabsContent>
       </Tabs>
       
-      <GuacamolePanel />
     </div>
   );
 }

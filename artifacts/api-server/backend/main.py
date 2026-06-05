@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from database import Base, engine
-from routers import devices, hls_streams, check_results, incidents, settings, dashboard, proxy, sse
+from routers import devices, hls_streams, check_results, incidents, settings, dashboard, proxy, sse, guacamole_sessions
 from workers.device_worker import device_worker_loop
 from workers.hls_worker import hls_worker_loop
 
@@ -85,6 +85,7 @@ app.include_router(settings.router)
 app.include_router(dashboard.router)
 app.include_router(proxy.router)
 app.include_router(sse.router)
+app.include_router(guacamole_sessions.router)
 
 
 @app.get("/healthz")

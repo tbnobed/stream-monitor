@@ -8,6 +8,7 @@ import Devices from "@/pages/Devices";
 import HlsStreams from "@/pages/HlsStreams";
 import Incidents from "@/pages/Incidents";
 import Settings from "@/pages/Settings";
+import Guacamole from "@/pages/Guacamole";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient();
@@ -20,6 +21,7 @@ function Router() {
         <Route path="/devices" component={Devices} />
         <Route path="/hls-streams" component={HlsStreams} />
         <Route path="/incidents" component={Incidents} />
+        <Route path="/guacamole" component={Guacamole} />
         <Route path="/settings" component={Settings} />
         <Route component={NotFound} />
       </Switch>

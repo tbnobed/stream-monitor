@@ -38,7 +38,7 @@ export interface Device {
   srs_app: string;
   enabled: boolean;
   /** @nullable */
-  guacamole_url?: string | null;
+  webrtc_url?: string | null;
   /** @nullable */
   notes?: string | null;
   current_status: DeviceCurrentStatus;
@@ -66,7 +66,7 @@ export interface DeviceInput {
   srs_app?: string;
   enabled?: boolean;
   /** @nullable */
-  guacamole_url?: string | null;
+  webrtc_url?: string | null;
   /** @nullable */
   notes?: string | null;
 }
@@ -97,7 +97,7 @@ export interface DeviceUpdate {
   /** @nullable */
   enabled?: boolean | null;
   /** @nullable */
-  guacamole_url?: string | null;
+  webrtc_url?: string | null;
   /** @nullable */
   notes?: string | null;
 }
@@ -246,6 +246,34 @@ export interface ItemStats {
   /** @nullable */
   mttr_seconds?: number | null;
   window: string;
+}
+
+export interface GuacamoleSession {
+  id: number;
+  name: string;
+  url: string;
+  /** @nullable */
+  notes?: string | null;
+  enabled: boolean;
+}
+
+export interface GuacamoleSessionInput {
+  name: string;
+  url: string;
+  /** @nullable */
+  notes?: string | null;
+  enabled?: boolean;
+}
+
+export interface GuacamoleSessionUpdate {
+  /** @nullable */
+  name?: string | null;
+  /** @nullable */
+  url?: string | null;
+  /** @nullable */
+  notes?: string | null;
+  /** @nullable */
+  enabled?: boolean | null;
 }
 
 export interface DashboardSummary {
