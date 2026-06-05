@@ -1,0 +1,63 @@
+name: ott-stream-monitor
+
+# Self-hosted deployment for an Ubuntu LAN server.
+#
+# Why host networking for `api` and `web`:
+#   Native remote control requires the backend's outbound packets to reach OTT
+#   devices with a PRIVATE LAN source address (Roku/Apple TV/etc. reject
+#   non-private / cross-subnet sources). With host networking the backend shares
+#   the host's LAN stack, so devices see the host's private IP and mDNS-based
+#   discovery (Apple TV / Google TV) works. The web (nginx) container also uses
+#   host networking so it can reach the backend on 127.0.0.1:8080.
+#
+# The database stays on a private bridge network and is published only to
+# 127.0.0.1:5432 (never exposed to the LAN).
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-ott}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in deploy/.env}
+      POSTGRES_DB: ${POSTGRES_DB:-ott_monitor}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ott} -d ${POSTGRES_DB:-ott_monitor}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  api:
+    build:
+      context: ..
+      dockerfile: deploy/api/Dockerfile
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?set DATABASE_URL in deploy/.env}
+      PORT: "8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8080/api/healthz || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  web:
+    build:
+      context: ..
+      dockerfile: deploy/web/Dockerfile
+    restart: unless-stopped
+    network_mode: host
+    depends_on:
+      - api
+
+volumes:
+  pgdata:

@@ -85,6 +85,20 @@ Every 15s (configurable): SRS API publisher check + ffmpeg blackdetect/freezedet
 - `ffmpeg` and `ffprobe` must be available on PATH for device workers and HLS deep validation
 - PostgreSQL (auto-provisioned by Replit)
 
+## Self-hosted Docker deployment (Ubuntu LAN)
+
+For native remote control to work, the backend must run on the **same LAN/subnet** as the OTT devices (devices reject control from non-private/cross-subnet source IPs). The `deploy/` directory packages the whole app to run on the user's own Ubuntu server.
+
+- `deploy/install.sh` — one-shot Ubuntu installer: installs Docker Engine + Compose plugin, generates `deploy/.env` (random DB password) on first run, then `docker compose up -d --build`. Run with `sudo bash deploy/install.sh` from a full checkout of the repo on the server.
+- `deploy/docker-compose.yml` — three services:
+  - `db` — `postgres:16-alpine`, named volume `pgdata`, published only to `127.0.0.1:5432` (not exposed to LAN).
+  - `api` — FastAPI backend (`deploy/api/Dockerfile`, python:3.11-slim + ffmpeg + aiortc libs). Uses `network_mode: host` so outbound traffic to devices carries the host's private LAN IP and mDNS discovery works. **Binds uvicorn to `127.0.0.1:8080`** (loopback only) so nginx is the single ingress and the API is not exposed on the LAN; device control is all outbound so this doesn't affect reachability. Connects to DB on `127.0.0.1:5432`.
+  - `web` — nginx serving the built React app + reverse-proxying `/api` (`deploy/web/Dockerfile` multi-stage build; `deploy/web/nginx.conf`). Also `network_mode: host` (listens on :80, proxies to `127.0.0.1:8080`).
+- `deploy/.env.example` — template; `POSTGRES_PASSWORD` must match the password inside `DATABASE_URL`.
+- Production routing: nginx serves the SPA at `/` and passes `/api/*` through **unchanged** (FastAPI `root_path="/api"` accepts the prefixed path — same contract as the Replit dev proxy). SSE/WebRTC proxying uses `proxy_buffering off` + long timeouts.
+- **amd64 only**: `pnpm-workspace.yaml` pins frontend platform binaries (esbuild/rollup/lightningcss/oxide) to linux-x64, so the `web` image must build on x86_64. `install.sh` warns on other architectures.
+- The frontend talks to the API via relative `/api` paths (same-origin), so no build-time API URL is needed; the build only requires `BASE_PATH=/` and a dummy `PORT`.
+
 ## User preferences
 
 _Populate as you build._

@@ -1,0 +1,39 @@
+# Keep the Docker build context small and free of host-built artifacts/secrets.
+
+# Dependencies (reinstalled inside the image)
+**/node_modules
+
+# Build output (regenerated inside the image)
+**/dist
+**/out-tsc
+**/.tsbuildinfo
+
+# Python caches / local sentinels
+**/__pycache__
+**/*.pyc
+**/.deps_installed
+**/.venv
+
+# Secrets / local env (never bake into an image). .env.example is allowed.
+**/.env
+**/.env.*
+!**/.env.example
+
+# VCS / editor / OS noise
+.git
+.gitignore
+**/.idea
+**/.vscode
+**/.DS_Store
+
+# Replit-local + agent state (irrelevant to a self-hosted build)
+.local
+.agents
+.replit
+replit.nix
+.cache
+.config
+.upm
+
+# Chat attachments (not imported by app code)
+attached_assets
