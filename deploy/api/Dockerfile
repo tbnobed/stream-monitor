@@ -1,6 +1,8 @@
 # OTT Stream Monitor — API (FastAPI) image
 # Build context is the repository root (see deploy/docker-compose.yml).
-FROM python:3.11-slim
+# Pinned to bookworm: trixie renamed libvpx7 -> libvpx9, which breaks the
+# aiortc runtime lib install below. Bookworm keeps the pinned package names valid.
+FROM python:3.11-slim-bookworm
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
