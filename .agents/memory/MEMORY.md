@@ -1,4 +1,5 @@
 - [SRS WHEP playback quirks](srs-whep-playback.md) — 3 things needed for WebRTC tiles to play: `/whep/` slash in URL, strip Location header, retry transient 502s
 - [FastAPI trailing-slash 307](fastapi-trailing-slash-307.md) — collection routes must be `@router.post("")` not `("/")` or mutations 307-loop behind nginx; uvicorn --reload hangs on open SSE
+- [HLS direct playback](hls-direct-playback.md) — wall HLS preview loads master_url straight via hls.js (HTTPS+CORS), not /api/proxy; WHEP still proxied
 - [OIDC account linking](oidc-account-linking.md) — SSO must bind by `sub` only, never link/lookup by email, or any SSO identity can hijack a local admin account
 - [Native OTT remote control](native-remote-control.md) — pairing sessions are in-memory (lost on restart), `chromecast`=Google TV not cast dongles, drivers lazy-import optional libs

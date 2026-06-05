@@ -9,6 +9,7 @@ import {
 } from "@workspace/api-client-react";
 import { useSse } from "@/hooks/use-sse";
 import { WebRtcPlayer } from "@/components/WebRtcPlayer";
+import { HlsPlayer } from "@/components/HlsPlayer";
 import { PlatformIcon } from "@/components/PlatformIcon";
 import { StatusBadge } from "@/components/StatusBadge";
 import { RemoteDialog } from "@/components/RemoteDialog";
@@ -144,6 +145,9 @@ export default function Dashboard() {
                       <StatusBadge status={liveStatus} className="shrink-0" />
                    </CardHeader>
                    <CardContent className="p-4 pt-0">
+                      <div className="aspect-video bg-black rounded-md overflow-hidden border border-border/50">
+                        <HlsPlayer src={stream.master_url} className="w-full h-full" />
+                      </div>
                       <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
                         <div className="bg-secondary/50 p-2 rounded">
                           <div className="text-muted-foreground mb-1 uppercase tracking-wider text-[10px]">Renditions</div>
