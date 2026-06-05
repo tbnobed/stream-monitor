@@ -91,7 +91,13 @@ async def sso_login(request: Request):
     """Begin the Authentik OIDC authorization-code flow."""
     if not settings.oidc_enabled:
         raise HTTPException(status_code=404, detail="SSO is not configured")
-    meta = await _get_metadata()
+    try:
+        meta = await _get_metadata()
+    except (httpx.HTTPError, KeyError, ValueError) as exc:
+        logger.warning(
+            "OIDC discovery fetch failed for %s: %s", settings.oidc_discovery_url, exc
+        )
+        return RedirectResponse(url="/?sso_error=1")
     state = secrets_mod.token_urlsafe(32)
     request.session["oidc_state"] = state
     params = {
