@@ -1,22 +1,32 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: OTT Stream Monitor API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: devices
+    description: OTT device management
+  - name: hls-streams
+    description: HLS source stream management
+  - name: check-results
+    description: Health check result history
+  - name: incidents
+    description: Incident tracking
+  - name: settings
+    description: System configuration
+  - name: dashboard
+    description: Aggregated dashboard data
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +34,454 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  # Devices
+  /devices:
+    get:
+      operationId: listDevices
+      tags: [devices]
+      summary: List all devices
+      responses:
+        "200":
+          description: List of devices
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Device"
+    post:
+      operationId: createDevice
+      tags: [devices]
+      summary: Create a device
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeviceInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Device"
+
+  /devices/{id}:
+    get:
+      operationId: getDevice
+      tags: [devices]
+      summary: Get a device
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Device
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Device"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateDevice
+      tags: [devices]
+      summary: Update a device
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeviceUpdate"
+      responses:
+        "200":
+          description: Updated device
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Device"
+    delete:
+      operationId: deleteDevice
+      tags: [devices]
+      summary: Delete a device
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /devices/{id}/stats/{window}:
+    get:
+      operationId: getDeviceStats
+      tags: [devices]
+      summary: Get uptime and MTTR stats for a device
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: window
+          in: path
+          required: true
+          schema:
+            type: string
+          description: "Time window: 24h, 7d, or 30d"
+      responses:
+        "200":
+          description: Stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ItemStats"
+
+  /devices/{id}/latest-check:
+    get:
+      operationId: getDeviceLatestCheck
+      tags: [devices]
+      summary: Get most recent check result for a device
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Latest check result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheckResult"
+
+  # HLS Streams
+  /hls-streams:
+    get:
+      operationId: listHlsStreams
+      tags: [hls-streams]
+      summary: List all HLS streams
+      responses:
+        "200":
+          description: List of HLS streams
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/HlsStream"
+    post:
+      operationId: createHlsStream
+      tags: [hls-streams]
+      summary: Create an HLS stream
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/HlsStreamInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HlsStream"
+
+  /hls-streams/{id}:
+    get:
+      operationId: getHlsStream
+      tags: [hls-streams]
+      summary: Get an HLS stream
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: HLS stream
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HlsStream"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateHlsStream
+      tags: [hls-streams]
+      summary: Update an HLS stream
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/HlsStreamUpdate"
+      responses:
+        "200":
+          description: Updated HLS stream
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HlsStream"
+    delete:
+      operationId: deleteHlsStream
+      tags: [hls-streams]
+      summary: Delete an HLS stream
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /hls-streams/{id}/stats/{window}:
+    get:
+      operationId: getHlsStreamStats
+      tags: [hls-streams]
+      summary: Get uptime and MTTR stats for an HLS stream
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: window
+          in: path
+          required: true
+          schema:
+            type: string
+          description: "Time window: 24h, 7d, or 30d"
+      responses:
+        "200":
+          description: Stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ItemStats"
+
+  /hls-streams/{id}/latest-check:
+    get:
+      operationId: getHlsStreamLatestCheck
+      tags: [hls-streams]
+      summary: Get most recent check result for an HLS stream
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Latest check result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheckResult"
+
+  # Check Results
+  /check-results:
+    get:
+      operationId: listCheckResults
+      tags: [check-results]
+      summary: List check results
+      parameters:
+        - name: device_id
+          in: query
+          schema:
+            type: ["integer", "null"]
+        - name: hls_stream_id
+          in: query
+          schema:
+            type: ["integer", "null"]
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        "200":
+          description: List of check results
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CheckResult"
+
+  # Incidents
+  /incidents:
+    get:
+      operationId: listIncidents
+      tags: [incidents]
+      summary: List incidents
+      parameters:
+        - name: device_id
+          in: query
+          schema:
+            type: ["integer", "null"]
+        - name: hls_stream_id
+          in: query
+          schema:
+            type: ["integer", "null"]
+        - name: status
+          in: query
+          schema:
+            type: ["string", "null"]
+            enum: [open, resolved, null]
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 100
+      responses:
+        "200":
+          description: List of incidents
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Incident"
+
+  /incidents/{id}:
+    get:
+      operationId: getIncident
+      tags: [incidents]
+      summary: Get an incident
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Incident
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Incident"
+
+  /incidents/{id}/acknowledge:
+    patch:
+      operationId: acknowledgeIncident
+      tags: [incidents]
+      summary: Acknowledge an active incident
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AcknowledgeInput"
+      responses:
+        "200":
+          description: Acknowledged incident
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Incident"
+
+  # Settings
+  /settings:
+    get:
+      operationId: listSettings
+      tags: [settings]
+      summary: List all settings
+      responses:
+        "200":
+          description: All settings as key-value pairs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Setting"
+    patch:
+      operationId: updateSettings
+      tags: [settings]
+      summary: Update one or more settings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SettingsUpdate"
+      responses:
+        "200":
+          description: Updated settings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Setting"
+
+  # Dashboard
+  /dashboard/summary:
+    get:
+      operationId: getDashboardSummary
+      tags: [dashboard]
+      summary: Get aggregated dashboard summary
+      responses:
+        "200":
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+
+  /dashboard/recent-incidents:
+    get:
+      operationId: getDashboardRecentIncidents
+      tags: [dashboard]
+      summary: Get recent incidents for dashboard feed
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        "200":
+          description: Recent incidents
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Incident"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +492,256 @@ components:
       required:
         - status
 
+    Device:
+      type: object
+      required: [id, name, platform, srs_stream_key, srs_app, enabled, current_status]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        platform:
+          type: string
+          enum: [roku, firetv, chromecast, appletv, other]
+        srs_stream_key:
+          type: string
+        srs_app:
+          type: string
+        enabled:
+          type: boolean
+        guacamole_url:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+        current_status:
+          type: string
+          enum: [HEALTHY, WARNING, DOWN, UNKNOWN]
+        last_checked_at:
+          type: ["string", "null"]
+        failure_reason:
+          type: ["string", "null"]
+
+    DeviceInput:
+      type: object
+      required: [name, platform, srs_stream_key]
+      properties:
+        name:
+          type: string
+        platform:
+          type: string
+          enum: [roku, firetv, chromecast, appletv, other]
+        srs_stream_key:
+          type: string
+        srs_app:
+          type: string
+          default: live
+        enabled:
+          type: boolean
+          default: true
+        guacamole_url:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+
+    DeviceUpdate:
+      type: object
+      properties:
+        name:
+          type: ["string", "null"]
+        platform:
+          type: ["string", "null"]
+          enum: [roku, firetv, chromecast, appletv, other, null]
+        srs_stream_key:
+          type: ["string", "null"]
+        srs_app:
+          type: ["string", "null"]
+        enabled:
+          type: ["boolean", "null"]
+        guacamole_url:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+
+    HlsStream:
+      type: object
+      required: [id, name, master_url, enabled, is_encrypted, current_status]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        master_url:
+          type: string
+        enabled:
+          type: boolean
+        expected_renditions:
+          type: ["integer", "null"]
+        is_encrypted:
+          type: boolean
+        notes:
+          type: ["string", "null"]
+        current_status:
+          type: string
+          enum: [HEALTHY, WARNING, DOWN, UNKNOWN]
+        last_checked_at:
+          type: ["string", "null"]
+        failure_reason:
+          type: ["string", "null"]
+
+    HlsStreamInput:
+      type: object
+      required: [name, master_url]
+      properties:
+        name:
+          type: string
+        master_url:
+          type: string
+        enabled:
+          type: boolean
+          default: true
+        expected_renditions:
+          type: ["integer", "null"]
+        is_encrypted:
+          type: boolean
+          default: false
+        notes:
+          type: ["string", "null"]
+
+    HlsStreamUpdate:
+      type: object
+      properties:
+        name:
+          type: ["string", "null"]
+        master_url:
+          type: ["string", "null"]
+        enabled:
+          type: ["boolean", "null"]
+        expected_renditions:
+          type: ["integer", "null"]
+        is_encrypted:
+          type: ["boolean", "null"]
+        notes:
+          type: ["string", "null"]
+
+    CheckResult:
+      type: object
+      required: [id, timestamp, status]
+      properties:
+        id:
+          type: integer
+        device_id:
+          type: ["integer", "null"]
+        hls_stream_id:
+          type: ["integer", "null"]
+        timestamp:
+          type: string
+        status:
+          type: string
+          enum: [HEALTHY, WARNING, DOWN, UNKNOWN]
+        detail:
+          type: object
+          additionalProperties: true
+        frame_thumbnail_path:
+          type: ["string", "null"]
+
+    Incident:
+      type: object
+      required: [id, started_at, status, reason]
+      properties:
+        id:
+          type: integer
+        device_id:
+          type: ["integer", "null"]
+        hls_stream_id:
+          type: ["integer", "null"]
+        device_name:
+          type: ["string", "null"]
+        hls_stream_name:
+          type: ["string", "null"]
+        item_type:
+          type: ["string", "null"]
+          enum: [device, hls_stream, null]
+        started_at:
+          type: string
+        resolved_at:
+          type: ["string", "null"]
+        status:
+          type: string
+          enum: [open, resolved]
+        reason:
+          type: string
+        acknowledged_by:
+          type: ["string", "null"]
+
+    AcknowledgeInput:
+      type: object
+      required: [acknowledged_by]
+      properties:
+        acknowledged_by:
+          type: string
+
+    Setting:
+      type: object
+      required: [key, value]
+      properties:
+        key:
+          type: string
+        value:
+          type: string
+        description:
+          type: ["string", "null"]
+
+    SettingsUpdate:
+      type: object
+      required: [settings]
+      properties:
+        settings:
+          type: array
+          items:
+            type: object
+            required: [key, value]
+            properties:
+              key:
+                type: string
+              value:
+                type: string
+
+    ItemStats:
+      type: object
+      required: [uptime_pct, total_incidents, window]
+      properties:
+        uptime_pct:
+          type: number
+        total_incidents:
+          type: integer
+        mttr_seconds:
+          type: ["number", "null"]
+        window:
+          type: string
+
+    DashboardSummary:
+      type: object
+      required: [total_devices, total_hls_streams, devices_down, devices_warning, devices_healthy, hls_down, hls_warning, hls_healthy, open_incidents]
+      properties:
+        total_devices:
+          type: integer
+        total_hls_streams:
+          type: integer
+        devices_down:
+          type: integer
+        devices_warning:
+          type: integer
+        devices_healthy:
+          type: integer
+        devices_unknown:
+          type: integer
+        hls_down:
+          type: integer
+        hls_warning:
+          type: integer
+        hls_healthy:
+          type: integer
+        hls_unknown:
+          type: integer
+        open_incidents:
+          type: integer

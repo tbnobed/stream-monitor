@@ -1,0 +1,124 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@plugin "@tailwindcss/typography";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-card-border: hsl(var(--card-border));
+
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-popover-border: hsl(var(--popover-border));
+
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-primary-border: var(--primary-border);
+
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-secondary-border: var(--secondary-border);
+
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-muted-border: var(--muted-border);
+
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-accent-border: var(--accent-border);
+
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-destructive-border: var(--destructive-border);
+
+  /* Status Colors */
+  --color-status-healthy: hsl(var(--status-healthy));
+  --color-status-warning: hsl(var(--status-warning));
+  --color-status-down: hsl(var(--status-down));
+  --color-status-unknown: hsl(var(--status-unknown));
+
+  --font-sans: var(--app-font-sans);
+  --font-serif: var(--app-font-serif);
+  --font-mono: var(--app-font-mono);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+:root {
+  /* Enforce pure dark mode. */
+  --background: 218 29% 6%; /* #0a0d12 */
+  --foreground: 210 20% 98%;
+  --border: 216 28% 14%;
+  --input: 216 28% 16%;
+  --ring: 190 90% 50%; /* Cyan accent */
+
+  --card: 218 25% 9%;
+  --card-foreground: 210 20% 98%;
+  --card-border: 216 28% 14%;
+
+  --popover: 218 25% 9%;
+  --popover-foreground: 210 20% 98%;
+  --popover-border: 216 28% 14%;
+
+  --primary: 190 90% 50%; /* Cyan */
+  --primary-foreground: 220 30% 10%;
+  --secondary: 216 28% 14%;
+  --secondary-foreground: 210 20% 98%;
+
+  --muted: 216 28% 12%;
+  --muted-foreground: 215 15% 65%;
+
+  --accent: 190 90% 15%;
+  --accent-foreground: 190 90% 50%;
+
+  --destructive: 350 89% 60%;
+  --destructive-foreground: 210 20% 98%;
+
+  --status-healthy: 142 71% 45%; /* Vivid green */
+  --status-warning: 38 92% 50%;  /* Amber */
+  --status-down: 350 89% 60%;    /* Vivid red */
+  --status-unknown: 215 15% 45%; /* Gray */
+
+  --app-font-sans: 'Inter', sans-serif;
+  --app-font-serif: Georgia, serif;
+  --app-font-mono: Menlo, monospace;
+  --radius: 0.25rem;
+
+  --sidebar: 218 29% 6%;
+  --sidebar-foreground: 210 20% 98%;
+  --sidebar-border: 216 28% 14%;
+  --sidebar-primary: 190 90% 50%;
+  --sidebar-primary-foreground: 220 30% 10%;
+  --sidebar-accent: 216 28% 14%;
+  --sidebar-accent-foreground: 210 20% 98%;
+  --sidebar-ring: 190 90% 50%;
+
+  --opaque-button-border-intensity: 0;
+  --button-outline: rgba(255,255,255, .10);
+  --badge-outline: rgba(255,255,255, .05);
+  --elevate-1: rgba(255,255,255, .04);
+  --elevate-2: rgba(255,255,255, .09);
+
+  color-scheme: dark;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+  }
+}
