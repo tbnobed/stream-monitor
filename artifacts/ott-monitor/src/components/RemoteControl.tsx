@@ -3,7 +3,6 @@ import {
   useGetRemoteStatus,
   useGetRemoteCapabilities,
   useSendRemoteKey,
-  useLaunchRemoteApp,
   useBeginRemotePairing,
   useFinishRemotePairing,
   getGetRemoteStatusQueryKey,
@@ -16,7 +15,7 @@ import {
   ChevronUp, ChevronDown, ChevronLeft, ChevronRight,
   CornerUpLeft, Home, Menu, Play, Rewind, FastForward,
   Volume2, Volume1, VolumeX, Power, RefreshCw, Loader2,
-  Wifi, WifiOff, Link2, AppWindow,
+  Wifi, WifiOff, Link2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -40,7 +39,6 @@ export function RemoteControl({ deviceId }: RemoteControlProps) {
   const { data: caps } = useGetRemoteCapabilities(deviceId);
 
   const sendKey = useSendRemoteKey();
-  const launchApp = useLaunchRemoteApp();
   const beginPair = useBeginRemotePairing();
   const finishPair = useFinishRemotePairing();
 
@@ -63,21 +61,6 @@ export function RemoteControl({ deviceId }: RemoteControlProps) {
             description: err?.data?.detail || err?.message || `Could not send "${key}".`,
           });
         },
-      }
-    );
-  };
-
-  const launch = (appId: string, name: string) => {
-    launchApp.mutate(
-      { id: deviceId, data: { app_id: appId } },
-      {
-        onSuccess: () => toast({ title: `Launched ${name}` }),
-        onError: (err: any) =>
-          toast({
-            variant: 'destructive',
-            title: 'Launch failed',
-            description: err?.data?.detail || err?.message || `Could not launch ${name}.`,
-          }),
       }
     );
   };
@@ -318,26 +301,6 @@ export function RemoteControl({ deviceId }: RemoteControlProps) {
         <PadButton keyName="volume_up" icon={Volume2} label="Volume Up" />
       </div>
 
-      {/* App shortcuts */}
-      {caps?.supports_app_launch && (caps?.apps?.length ?? 0) > 0 && (
-        <div className="space-y-2 border-t pt-3">
-          <div className="flex items-center gap-1.5 text-xs uppercase tracking-wider text-muted-foreground">
-            <AppWindow className="h-3.5 w-3.5" /> Apps
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {caps?.apps?.map((app) => (
-              <Button
-                key={app.id}
-                variant="secondary"
-                size="sm"
-                onClick={() => launch(app.id, app.name)}
-              >
-                {app.name}
-              </Button>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
