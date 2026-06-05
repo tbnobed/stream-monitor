@@ -5,14 +5,25 @@ import {
 } from '@/components/ui/dialog';
 import { Gamepad2 } from 'lucide-react';
 import { RemoteControl } from '@/components/RemoteControl';
+import { WebRtcPlayer } from '@/components/WebRtcPlayer';
 
 interface RemoteDialogProps {
   deviceId: number;
   deviceName: string;
+  streamKey: string;
+  webrtcUrl?: string | null;
+  enabled?: boolean;
   trigger?: React.ReactNode;
 }
 
-export function RemoteDialog({ deviceId, deviceName, trigger }: RemoteDialogProps) {
+export function RemoteDialog({
+  deviceId,
+  deviceName,
+  streamKey,
+  webrtcUrl,
+  enabled = true,
+  trigger,
+}: RemoteDialogProps) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -24,16 +35,35 @@ export function RemoteDialog({ deviceId, deviceName, trigger }: RemoteDialogProp
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="max-w-sm">
+      <DialogContent className="max-w-4xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Gamepad2 className="h-4 w-4 text-primary" /> {deviceName}
           </DialogTitle>
           <DialogDescription>
-            Native on-screen remote control for this device.
+            Live device screen with native on-screen remote control.
           </DialogDescription>
         </DialogHeader>
-        {open && <RemoteControl deviceId={deviceId} />}
+        <div className="flex flex-col gap-4 md:flex-row md:items-start">
+          <div className="min-w-0 flex-1">
+            <div className="aspect-video overflow-hidden rounded-md border border-border bg-black">
+              {open && enabled ? (
+                <WebRtcPlayer
+                  streamKey={streamKey}
+                  webrtcUrl={webrtcUrl}
+                  className="h-full w-full"
+                />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center text-xs uppercase tracking-widest text-muted-foreground">
+                  {enabled ? 'Loading…' : 'Disabled'}
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="max-h-[70vh] w-full shrink-0 overflow-y-auto md:w-80">
+            {open && <RemoteControl deviceId={deviceId} />}
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   );

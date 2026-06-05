@@ -325,6 +325,9 @@ export default function Devices() {
                       <RemoteDialog
                         deviceId={device.id}
                         deviceName={device.name}
+                        streamKey={device.srs_stream_key}
+                        webrtcUrl={device.webrtc_url}
+                        enabled={device.enabled}
                         trigger={
                           <Button variant="ghost" size="icon" title="Native remote">
                             <Gamepad2 className={`w-4 h-4 ${device.remote_paired ? 'text-status-healthy' : 'text-primary'}`} />

@@ -102,6 +102,9 @@ export default function Dashboard() {
                           <RemoteDialog
                             deviceId={device.id}
                             deviceName={device.name}
+                            streamKey={device.srs_stream_key}
+                            webrtcUrl={device.webrtc_url}
+                            enabled={device.enabled}
                             trigger={
                               <Button
                                 size="icon"
