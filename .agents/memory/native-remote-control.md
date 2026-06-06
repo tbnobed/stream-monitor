@@ -36,4 +36,4 @@ hold a long-lived connection. **Pattern:** cache the live connection in a module
 keyed by device.id, guard with a per-device asyncio.Lock, keep it warm with an idle reaper
 (`loop.call_later` -> coroutine that re-acquires the lock + rechecks last_used before
 closing), reconnect-once on a failed op, prime it from `status()`, and drop it on re-pair.
-Roku (ECP, plain HTTP) and Fire TV (ADB) do NOT need this.
+Roku (ECP, plain HTTP) is stateless and does NOT need this. Fire TV (ADB) DOES — its connect does an RSA auth handshake, but note ADB connect/close are async, so connection teardown must run under the per-device lock (sync disconnect like Google TV is safe unlocked).
