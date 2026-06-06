@@ -14,11 +14,14 @@ connect cost. Unlike androidtvremote2, adb_shell's connect/close are async.
 from __future__ import annotations
 
 import asyncio
+import logging
 import os
 import tempfile
 import time
 
 from .base import RemoteDriver, RemoteError, RemoteStatus, PairBeginResult, tcp_open
+
+logger = logging.getLogger(__name__)
 
 ADB_PORT = 5555
 
@@ -189,6 +192,7 @@ class FireTVDriver(RemoteDriver):
         ip = self._require_ip()
         signer = self._signer()
         dev = AdbDeviceTcpAsync(ip, ADB_PORT, default_transport_timeout_s=timeout)
+        t0 = time.monotonic()
         try:
             await dev.connect(rsa_keys=[signer], auth_timeout_s=timeout)
         except Exception as e:
@@ -199,6 +203,10 @@ class FireTVDriver(RemoteDriver):
                     "not_paired",
                 )
             raise RemoteError(f"Could not connect to Fire TV: {e}", "unreachable")
+        logger.info(
+            "firetv connect device=%s ip=%s handshake=%.3fs",
+            self.device.id, ip, time.monotonic() - t0,
+        )
         slot["remote"] = dev
         return dev
 
@@ -209,7 +217,10 @@ class FireTVDriver(RemoteDriver):
         async with slot["lock"]:
             last_err: Exception | None = None
             for attempt in (1, 2):
+                reused = not (attempt == 2) and slot.get("remote") is not None
+                t_conn = time.monotonic()
                 dev = await self._connect(force=(attempt == 2))
+                t_op = time.monotonic()
                 try:
                     result = await op(dev)
                 except RemoteError:
@@ -221,8 +232,17 @@ class FireTVDriver(RemoteDriver):
                     # Warm connection may be dead — drop it and reconnect once.
                     # We already hold the lock here, so use the locked variant.
                     last_err = e
+                    logger.warning(
+                        "firetv op failed device=%s attempt=%d reused=%s: %s: %s",
+                        self.device.id, attempt, reused, type(e).__name__, e,
+                    )
                     await self._close_slot_conn_locked()
                     continue
+                done = time.monotonic()
+                logger.info(
+                    "firetv send device=%s reused=%s connect=%.3fs op=%.3fs total=%.3fs",
+                    self.device.id, reused, t_op - t_conn, done - t_op, done - t_conn,
+                )
                 slot["last_used"] = time.monotonic()
                 self._schedule_reap()
                 return result
