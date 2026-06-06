@@ -117,7 +117,11 @@ async def ffprobe_segment(segment_uri: str, base_uri: str) -> dict:
             streams = data.get("streams", [])
             has_video = any(s.get("codec_type") == "video" for s in streams)
             has_audio = any(s.get("codec_type") == "audio" for s in streams)
-            return {"ok": has_video and has_audio, "has_video": has_video, "has_audio": has_audio}
+            # A segment is valid if it decodes to at least one media stream.
+            # Demuxed HLS (separate audio/video renditions, e.g. JWPlayer) has
+            # video-only segments in the video variant — requiring BOTH would
+            # falsely mark a healthy stream DOWN. Muxed streams still pass.
+            return {"ok": has_video or has_audio, "has_video": has_video, "has_audio": has_audio}
         except Exception as e:
             return {"ok": False, "reason": str(e)}
 
