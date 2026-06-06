@@ -239,7 +239,7 @@ class FireTVDriver(RemoteDriver):
                     await self._close_slot_conn_locked()
                     continue
                 done = time.monotonic()
-                logger.info(
+                logger.debug(
                     "firetv send device=%s reused=%s connect=%.3fs op=%.3fs total=%.3fs",
                     self.device.id, reused, t_op - t_conn, done - t_op, done - t_conn,
                 )
