@@ -136,18 +136,14 @@ def encode_png_data_url(rgb: np.ndarray) -> str:
     return _encode_data_url(rgb, "PNG")
 
 
-async def grab_video_frame(
+async def _grab_once(
     whep_base: str,
     app: str,
     stream_key: str,
-    seconds: float = 6.0,
-    want_frames: int = 10,
+    seconds: float,
+    want_frames: int,
 ) -> np.ndarray | None:
-    """Open a short WHEP connection and return a representative RGB video frame.
-
-    Collects a handful of decoded frames and returns the last one (most settled),
-    or None if the handshake fails or no video arrives.
-    """
+    """One WHEP connect → decode attempt. Returns a settled RGB frame or None."""
     pc = RTCPeerConnection(RTCConfiguration(iceServers=[]))
     frames: list[np.ndarray] = []
     reader_tasks: list[asyncio.Task] = []
@@ -209,3 +205,29 @@ async def grab_video_frame(
             await pc.close()
         except Exception:
             pass
+
+
+async def grab_video_frame(
+    whep_base: str,
+    app: str,
+    stream_key: str,
+    seconds: float = 12.0,
+    want_frames: int = 4,
+    retries: int = 2,
+) -> np.ndarray | None:
+    """Open a WHEP connection and return a representative RGB video frame.
+
+    aiortc's *software* H264 decoder needs a keyframe (IDR) to start decoding, so
+    a live stream can still yield zero decoded frames inside a short window — e.g.
+    when the IDR lands outside it or CPU is contended by the device-worker probes.
+    To make interactive capture reliable we (a) wait a generous window and return
+    as soon as a few frames settle, and (b) retry on a *fresh* connection, which
+    prompts SRS to send a new keyframe. Returns None only when every attempt fails.
+    """
+    for attempt in range(max(1, retries)):
+        frame = await _grab_once(whep_base, app, stream_key, seconds, want_frames)
+        if frame is not None:
+            return frame
+        if attempt + 1 < max(1, retries):
+            await asyncio.sleep(0.5)
+    return None
