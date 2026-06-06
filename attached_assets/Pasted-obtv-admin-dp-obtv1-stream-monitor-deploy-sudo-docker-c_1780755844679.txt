@@ -1,0 +1,42 @@
+obtv-admin@dp-obtv1:~/stream-monitor/deploy$ sudo docker compose logs --tail=40 api
+api-1  | 2026-06-06 14:23:22,643 INFO httpx: HTTP Request: POST http://cdn1.obedtv.live:2023/rtc/v1/whep/?app=live&stream=vodroku "HTTP/1.1 201 Created"
+api-1  | 2026-06-06 14:23:22,645 INFO httpx: HTTP Request: POST http://cdn1.obedtv.live:2023/rtc/v1/whep/?app=live&stream=vodapple "HTTP/1.1 201 Created"
+api-1  | 2026-06-06 14:23:22,648 INFO httpx: HTTP Request: POST http://cdn1.obedtv.live:2023/rtc/v1/whep/?app=live&stream=vodchrome "HTTP/1.1 201 Created"
+api-1  | 2026-06-06 14:23:22,650 INFO httpx: HTTP Request: POST http://cdn1.obedtv.live:2023/rtc/v1/whep/?app=live&stream=vodfire "HTTP/1.1 201 Created"
+api-1  | INFO:     127.0.0.1:33362 - "GET /api/healthz HTTP/1.1" 200 OK
+api-1  | INFO:     192.168.200.193:0 - "GET /api/hls-streams HTTP/1.1" 200 OK
+api-1  | INFO:     192.168.200.193:0 - "GET /api/devices HTTP/1.1" 200 OK
+api-1  | INFO:     192.168.200.193:0 - "GET /api/dashboard/summary HTTP/1.1" 200 OK
+api-1  | 2026-06-06 14:23:37,588 INFO services.remote.firetv: firetv send device=2 reused=True connect=0.000s op=1.010s total=1.010s
+api-1  | INFO:     192.168.200.193:0 - "POST /api/devices/2/remote/key HTTP/1.1" 200 OK
+api-1  | 2026-06-06 14:23:38,306 INFO httpx: HTTP Request: POST http://cdn1.obedtv.live:2023/rtc/v1/whep/?app=live&stream=vodfire "HTTP/1.1 201 Created"
+api-1  | 2026-06-06 14:23:38,311 INFO httpx: HTTP Request: POST http://cdn1.obedtv.live:2023/rtc/v1/whep/?app=live&stream=vodchrome "HTTP/1.1 201 Created"
+api-1  | 2026-06-06 14:23:38,312 INFO httpx: HTTP Request: POST http://cdn1.obedtv.live:2023/rtc/v1/whep/?app=live&stream=vodroku "HTTP/1.1 201 Created"
+api-1  | 2026-06-06 14:23:38,316 INFO httpx: HTTP Request: POST http://cdn1.obedtv.live:2023/rtc/v1/whep/?app=live&stream=vodapple "HTTP/1.1 201 Created"
+api-1  | 2026-06-06 14:23:39,255 INFO services.remote.firetv: firetv send device=2 reused=True connect=0.000s op=0.825s total=0.825s
+api-1  | INFO:     192.168.200.193:0 - "POST /api/devices/2/remote/key HTTP/1.1" 200 OK
+api-1  | 2026-06-06 14:23:40,633 INFO httpx: HTTP Request: GET https://cdn.jwplayer.com/live/broadcast/yfFI83Xz.m3u8 "HTTP/1.1 302 Moved Temporarily"
+api-1  | 2026-06-06 14:23:40,635 INFO httpx: HTTP Request: GET https://cdn.jwplayer.com/live/broadcast/xYzvOK1L.m3u8 "HTTP/1.1 302 Moved Temporarily"
+api-1  | 2026-06-06 14:23:40,720 INFO httpx: HTTP Request: GET https://cdn.jwplayer.com/live/broadcast/fCGf6ROk.m3u8 "HTTP/1.1 302 Moved Temporarily"
+api-1  | 2026-06-06 14:23:40,760 INFO httpx: HTTP Request: GET https://broadcast-live-delivery-cdn.jwplayer.com/live/broadcast/xYzvOK1L.m3u8?exp=1780756320&sig=879df9876f55991727f52e71f5e5f567 "HTTP/1.1 302 Moved Temporarily"
+api-1  | 2026-06-06 14:23:40,772 INFO httpx: HTTP Request: GET https://tbn-live.cdn.vustreams.com/live/64640857-bd35-487a-92fb-95f111700c7a/live.isml/playlist.m3u8 "HTTP/1.1 200 OK"
+api-1  | 2026-06-06 14:23:40,817 INFO httpx: HTTP Request: GET https://broadcast-live-delivery-cdn.jwplayer.com/live/broadcast/yfFI83Xz.m3u8?exp=1780756560&sig=285142dc71134112806e5a6125a871e7 "HTTP/1.1 302 Moved Temporarily"
+api-1  | 2026-06-06 14:23:40,841 INFO services.remote.firetv: firetv send device=2 reused=True connect=0.000s op=0.949s total=0.949s
+api-1  | INFO:     192.168.200.193:0 - "POST /api/devices/2/remote/key HTTP/1.1" 200 OK
+api-1  | 2026-06-06 14:23:40,856 INFO httpx: HTTP Request: GET https://broadcast-live-delivery-cdn.jwplayer.com/live/broadcast/fCGf6ROk.m3u8?exp=1780756560&sig=95070f15f63ae0165aee53bcf8304aa3 "HTTP/1.1 302 Moved Temporarily"
+api-1  | 2026-06-06 14:23:40,921 INFO httpx: HTTP Request: GET https://livecdn.use1-0004.jwplive.com/live/sites/Yal8cmyO/media/yfFI83Xz/live.isml/.m3u8 "HTTP/1.1 200 OK"
+api-1  | 2026-06-06 14:23:40,966 INFO httpx: HTTP Request: GET https://livecdn.use1-0004.jwplive.com/live/sites/Yal8cmyO/media/xYzvOK1L/live.isml/.m3u8 "HTTP/1.1 200 OK"
+api-1  | 2026-06-06 14:23:40,967 INFO httpx: HTTP Request: GET https://livecdn.use1-0004.jwplive.com/live/sites/Yal8cmyO/media/fCGf6ROk/live.isml/.m3u8 "HTTP/1.1 200 OK"
+api-1  | 2026-06-06 14:23:41,057 INFO httpx: HTTP Request: GET https://tbn-live.cdn.vustreams.com/live/64640857-bd35-487a-92fb-95f111700c7a/live.isml/live-audio_0=96000-video=600000.m3u8 "HTTP/1.1 200 OK"
+api-1  | 2026-06-06 14:23:41,196 INFO httpx: HTTP Request: GET https://cdn.jwplayer.com/live/broadcast/live-video=600000.m3u8 "HTTP/1.1 404 Not Found"
+api-1  | 2026-06-06 14:23:41,197 INFO httpx: HTTP Request: GET https://cdn.jwplayer.com/live/broadcast/live-video=600000.m3u8 "HTTP/1.1 404 Not Found"
+api-1  | 2026-06-06 14:23:41,198 INFO httpx: HTTP Request: GET https://cdn.jwplayer.com/live/broadcast/live-video=600000.m3u8 "HTTP/1.1 404 Not Found"
+api-1  | 2026-06-06 14:23:41,200 INFO httpx: HTTP Request: GET https://tbn-live.cdn.vustreams.com/live/64640857-bd35-487a-92fb-95f111700c7a/live.isml/live-audio_0=96000-video=600000-296792635.ts "HTTP/1.1 200 OK"
+api-1  | 2026-06-06 14:23:42,260 INFO services.remote.firetv: firetv send device=2 reused=True connect=0.000s op=0.811s total=0.811s
+api-1  | INFO:     192.168.200.193:0 - "POST /api/devices/2/remote/key HTTP/1.1" 200 OK
+api-1  | 2026-06-06 14:23:43,808 INFO services.remote.firetv: firetv send device=2 reused=True connect=0.000s op=0.930s total=0.930s
+api-1  | INFO:     192.168.200.193:0 - "POST /api/devices/2/remote/key HTTP/1.1" 200 OK
+api-1  | INFO:     127.0.0.1:57700 - "GET /api/healthz HTTP/1.1" 200 OK
+api-1  | 2026-06-06 14:23:45,132 INFO services.remote.firetv: firetv send device=2 reused=True connect=0.000s op=0.822s total=0.822s
+api-1  | INFO:     192.168.200.193:0 - "POST /api/devices/2/remote/key HTTP/1.1" 200 OK
+obtv-admin@dp-obtv1:~/stream-monitor/deploy$
