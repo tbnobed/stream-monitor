@@ -48,7 +48,8 @@ services:
       SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
       # First-run admin bootstrap (only used when there are zero users).
       INITIAL_ADMIN_USERNAME: ${INITIAL_ADMIN_USERNAME:-admin}
-      INITIAL_ADMIN_PASSWORD: ${INITIAL_ADMIN_PASSWORD:-admin}
+      # Empty -> the API generates a random one-time password and logs it on first boot.
+      INITIAL_ADMIN_PASSWORD: ${INITIAL_ADMIN_PASSWORD:-}
       # Authentik / OIDC SSO (optional). SSO turns on only when CLIENT_ID,
       # CLIENT_SECRET, and DISCOVERY_URL are all set.
       OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-}

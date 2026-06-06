@@ -70,6 +70,7 @@ if [[ ! -f .env ]]; then
   echo "==> Generating deploy/.env ..."
   PW="$(rand_hex 24)"
   SECRET="$(rand_hex 32)"
+  ADMIN_PW="$(rand_hex 12)"
   cat > .env <<EOF
 POSTGRES_USER=ott
 POSTGRES_PASSWORD=${PW}
@@ -80,7 +81,7 @@ DATABASE_URL=postgresql://ott:${PW}@127.0.0.1:5432/ott_monitor
 SESSION_SECRET=${SECRET}
 SESSION_COOKIE_SECURE=false
 INITIAL_ADMIN_USERNAME=admin
-INITIAL_ADMIN_PASSWORD=admin
+INITIAL_ADMIN_PASSWORD=${ADMIN_PW}
 
 # --- Authentik / OIDC SSO (optional; leave blank to disable) ---
 OIDC_CLIENT_ID=
@@ -91,7 +92,8 @@ OIDC_DISPLAY_NAME=Authentik
 EOF
   chmod 600 .env
   echo "    Wrote deploy/.env (keep this file private)."
-  echo "    Default login: admin / admin — change it after first sign-in."
+  echo "    Initial login: admin / ${ADMIN_PW}"
+  echo "    (also stored as INITIAL_ADMIN_PASSWORD in deploy/.env — change it after first sign-in)."
 else
   echo "==> deploy/.env already exists; leaving it untouched."
   if ! grep -q '^SESSION_SECRET=' .env; then

@@ -22,6 +22,14 @@ async def lifespan(app: FastAPI):
     # Create tables
     Base.metadata.create_all(bind=engine)
 
+    # Self-healing migration: create_all() does NOT add columns to tables that
+    # already exist, so columns introduced after the initial deploy must be
+    # added explicitly. Idempotent (IF NOT EXISTS), runs before serving traffic.
+    from sqlalchemy import text
+    with engine.begin() as conn:
+        conn.execute(text("ALTER TABLE devices ADD COLUMN IF NOT EXISTS ip_address VARCHAR(64)"))
+        conn.execute(text("ALTER TABLE devices ADD COLUMN IF NOT EXISTS remote_config JSONB"))
+
     # Seed defaults
     from database import SessionLocal
     from routers.settings import ensure_defaults
@@ -46,18 +54,27 @@ async def lifespan(app: FastAPI):
     from models import User
     from auth import hash_password
     if db.query(User).count() == 0:
+        admin_password = app_settings.initial_admin_password or secrets.token_urlsafe(16)
+        generated = not app_settings.initial_admin_password
         admin = User(
             username=app_settings.initial_admin_username,
             role="admin",
             auth_provider="local",
-            password_hash=hash_password(app_settings.initial_admin_password),
+            password_hash=hash_password(admin_password),
             is_active=True,
         )
         db.add(admin)
-        logger.warning(
-            "Created initial admin user '%s'. CHANGE THE PASSWORD after first login.",
-            app_settings.initial_admin_username,
-        )
+        if generated:
+            logger.warning(
+                "Created initial admin '%s' with a GENERATED one-time password: %s  "
+                "-- log in and change it now. Set INITIAL_ADMIN_PASSWORD to choose your own.",
+                app_settings.initial_admin_username, admin_password,
+            )
+        else:
+            logger.warning(
+                "Created initial admin user '%s'. CHANGE THE PASSWORD after first login.",
+                app_settings.initial_admin_username,
+            )
 
     db.commit()
     db.close()

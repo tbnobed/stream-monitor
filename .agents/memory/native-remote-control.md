@@ -37,3 +37,18 @@ keyed by device.id, guard with a per-device asyncio.Lock, keep it warm with an i
 (`loop.call_later` -> coroutine that re-acquires the lock + rechecks last_used before
 closing), reconnect-once on a failed op, prime it from `status()`, and drop it on re-pair.
 Roku (ECP, plain HTTP) is stateless and does NOT need this. Fire TV (ADB) DOES — its connect does an RSA auth handshake, but note ADB connect/close are async, so connection teardown must run under the per-device lock (sync disconnect like Google TV is safe unlocked).
+
+## Diagnosing remote latency on the self-hosted LAN deploy
+The devices are LAN-only — unreachable from Replit — so you cannot reproduce or measure
+real press latency here. Two field gotchas when a "fixed" latency issue persists:
+- **`docker compose up -d --build` builds from the server's checked-out code.** If the
+  operator didn't `git pull` first, the rebuild ships the OLD code and the fix has no
+  effect. Always have them pull before building.
+- **Warm-conn reuse can be defeated even on one process**, or the residual cost may be the
+  on-device `input keyevent` (Android `input` spins up app_process/ART each call; slow when
+  the Firestick is busy decoding the live stream it's being monitored for). To tell these
+  apart, the firetv driver logs `firetv send device=.. reused=.. connect=.. op=..`:
+  high `connect=` every press → reconnecting (cache broken); high `op=` with `reused=true`
+  → the device-side command is the bottleneck (ADB has no clean fix; sendevent is fragile).
+  **Why:** spent a session guessing; instrumenting + reading `docker compose logs api` is the
+  only reliable way to localize the delay.

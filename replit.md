@@ -59,7 +59,7 @@ A full-stack broadcast NOC (Network Operations Center) tool that monitors live O
 The entire app (frontend + API) is gated. Unauthenticated API calls return 401; the React app shows a login screen until a session exists.
 
 - **Two roles**: `admin` (manage users + edit settings) and `operator` (view + control devices). Settings PATCH and all `/api/users` routes require admin.
-- **Local accounts**: username/password, bcrypt-hashed. On first boot, when the user table is empty, an initial admin is created from `INITIAL_ADMIN_USERNAME`/`INITIAL_ADMIN_PASSWORD` (defaults `admin`/`admin` — change it after first login).
+- **Local accounts**: username/password, bcrypt-hashed. On first boot, when the user table is empty, an initial admin is created from `INITIAL_ADMIN_USERNAME` (default `admin`) and `INITIAL_ADMIN_PASSWORD`. If `INITIAL_ADMIN_PASSWORD` is unset, the API generates a random one-time password and logs it once on startup (`docker compose logs api`) — no guessable `admin`/`admin` default. The `deploy/install.sh` installer also writes a random `INITIAL_ADMIN_PASSWORD` into `deploy/.env` and prints it. Change it after first login.
 - **Email on accounts**: every account has an optional, format-validated email (`UserCreate`/`UserUpdate` use Pydantic `EmailStr`, backed by `email-validator`) intended for notifications (e.g. the planned SendGrid integration). Admins set/edit it on the Users page; SSO stores the IdP email only when the token's `email_verified` is true.
 - **Optional Authentik (OIDC) SSO**: enabled only when `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, and `OIDC_DISCOVERY_URL` are all set. The login page then shows a "Sign in with {OIDC_DISPLAY_NAME}" button. SSO users are auto-provisioned as `operator`. OIDC is implemented directly with `httpx` (Authlib is blocked by the package firewall): the flow does state-CSRF in the session, then code → token (`client_secret_post`) → userinfo. Behind a reverse proxy, set `OIDC_REDIRECT_URI` to the public callback URL.
 - **Sessions**: signed cookies via Starlette `SessionMiddleware` (`SESSION_SECRET`). `same_site=lax`; set `SESSION_COOKIE_SECURE=true` only when served over HTTPS. Frontend is same-origin, so cookies are sent automatically — never set an auth token getter on the API client.
@@ -122,7 +122,7 @@ _Populate as you build._
 - The backend runs from `artifacts/api-server/backend/` with absolute paths — do not change the artifact.toml run command to relative paths
 - The `.deps_installed` sentinel file in `backend/` prevents pip re-installs on every restart
 - SQLAlchemy models auto-create tables on startup — Alembic migrations not yet wired for production; use the Replit Publish flow for schema changes
-- `create_all` does NOT alter existing tables. New columns on an existing model (e.g. `devices.ip_address`, `devices.remote_config`) must be added with a manual `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` against the dev DB, or the API server crashes on boot
+- `create_all` does NOT alter existing tables. New columns on an existing model must be added with `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`. Startup in `main.py` runs idempotent `ALTER TABLE devices ADD COLUMN IF NOT EXISTS` statements (for `ip_address`, `remote_config`) right after `create_all`, so existing deployments self-heal on boot. When you add a new column to an existing model, add a matching `ADD COLUMN IF NOT EXISTS` line there.
 
 ## Pointers
 

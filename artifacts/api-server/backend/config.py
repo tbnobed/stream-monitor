@@ -50,7 +50,9 @@ class Settings(BaseSettings):
 
     # First-run admin bootstrap (only used when there are zero users).
     initial_admin_username: str = os.environ.get("INITIAL_ADMIN_USERNAME", "admin")
-    initial_admin_password: str = os.environ.get("INITIAL_ADMIN_PASSWORD", "admin")
+    # Empty by default so first-boot bootstrap generates a random one-time
+    # password instead of a guessable "admin". Set this env var to choose your own.
+    initial_admin_password: str = os.environ.get("INITIAL_ADMIN_PASSWORD", "")
 
     @property
     def oidc_enabled(self) -> bool:
