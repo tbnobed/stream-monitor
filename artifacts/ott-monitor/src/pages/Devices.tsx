@@ -412,7 +412,10 @@ function LogoMonitorSection({
   const rw = form.watch('logo_region_w');
   const rh = form.watch('logo_region_h');
 
-  const clamp = (n: number) => (Number.isFinite(n) ? Math.max(0, Math.min(100, n)) : 0);
+  const clamp = (n: number | string) => {
+    const v = Number(n);
+    return Number.isFinite(v) ? Math.max(0, Math.min(100, v)) : 0;
+  };
 
   const imgWrapRef = useRef<HTMLDivElement>(null);
   const dragStart = useRef<{ x: number; y: number } | null>(null);
@@ -525,11 +528,11 @@ function LogoMonitorSection({
         <div className="space-y-3 pt-1">
           <div className="grid grid-cols-4 gap-2">
             {([
-              ['logo_region_x', 'X %'],
-              ['logo_region_y', 'Y %'],
-              ['logo_region_w', 'W %'],
-              ['logo_region_h', 'H %'],
-            ] as const).map(([name, label]) => (
+              ['logo_region_x', 'X %', 0],
+              ['logo_region_y', 'Y %', 0],
+              ['logo_region_w', 'W %', 1],
+              ['logo_region_h', 'H %', 1],
+            ] as const).map(([name, label, min]) => (
               <FormField
                 key={name}
                 control={form.control}
@@ -538,7 +541,7 @@ function LogoMonitorSection({
                   <FormItem>
                     <FormLabel className="text-xs">{label}</FormLabel>
                     <FormControl>
-                      <Input type="number" min={0} max={100} step={1} {...field} />
+                      <Input type="number" min={min} max={100} step={1} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -587,6 +590,7 @@ function LogoMonitorSection({
                   onPointerDown={onPointerDown}
                   onPointerMove={onPointerMove}
                   onPointerUp={onPointerUp}
+                  onPointerCancel={onPointerUp}
                   className="relative w-full overflow-hidden rounded border bg-black touch-none select-none cursor-crosshair"
                 >
                   <img
