@@ -28,6 +28,7 @@ class Device(Base):
     logo_match_threshold = Column(Float, nullable=False, default=0.6)
     logo_template = Column(Text, nullable=True)  # base64 grayscale ref crop (internal)
     logo_missing_since = Column(DateTime(timezone=True), nullable=True)  # logo-grace timer (internal)
+    black_since = Column(DateTime(timezone=True), nullable=True)  # black-screen grace timer (internal)
 
     check_results = relationship("CheckResult", back_populates="device", cascade="all, delete-orphan")
     incidents = relationship("Incident", back_populates="device", cascade="all, delete-orphan")

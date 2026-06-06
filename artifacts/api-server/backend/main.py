@@ -34,6 +34,7 @@ async def lifespan(app: FastAPI):
         conn.execute(text("ALTER TABLE devices ADD COLUMN IF NOT EXISTS logo_match_threshold DOUBLE PRECISION NOT NULL DEFAULT 0.6"))
         conn.execute(text("ALTER TABLE devices ADD COLUMN IF NOT EXISTS logo_template TEXT"))
         conn.execute(text("ALTER TABLE devices ADD COLUMN IF NOT EXISTS logo_missing_since TIMESTAMPTZ"))
+        conn.execute(text("ALTER TABLE devices ADD COLUMN IF NOT EXISTS black_since TIMESTAMPTZ"))
 
     # Seed defaults
     from database import SessionLocal

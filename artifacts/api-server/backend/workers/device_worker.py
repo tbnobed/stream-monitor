@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 from database import SessionLocal
 from models import Device, Setting
+from config import settings
 from services.incident_service import handle_status_change
 from services import logo as logo_svc
 import httpx
@@ -393,6 +394,26 @@ async def check_device(device_id: int):
             device.logo_missing_since = None
             db.commit()
 
+        # Black-screen grace period: some channels load a black slate for a
+        # minute or two before the show starts, so a black screen only escalates
+        # to DOWN after it has been continuously black for `black_grace_seconds`
+        # (BLACK_GRACE_SECONDS env var, default 300s / 5min). We stamp the first
+        # black cycle on the device row and clear it the instant the picture is
+        # back (or the feed drops), so each fresh black slate gets a full window.
+        # A black screen is also a frozen one, so during the grace window the
+        # freeze verdict is suppressed too (see status mapping below).
+        black_escalated = False
+        if content.get("black"):
+            if device.black_since is None:
+                device.black_since = now
+                db.commit()
+            bgrace = max(0.0, settings.black_grace_seconds)
+            if (now - device.black_since).total_seconds() >= bgrace:
+                black_escalated = True
+        elif device.black_since is not None:
+            device.black_since = None
+            db.commit()
+
         if detail.get("media_flowing"):
             new_status = "HEALTHY"
             reason = ""
@@ -401,7 +422,11 @@ async def check_device(device_id: int):
             # detection; black takes priority over freeze (a black frame is also
             # a frozen one). Logo only escalates after the grace period above.
             if content.get("black"):
-                new_status, reason = "DOWN", "Black screen on device output"
+                # Black implies frozen, so taking this branch unconditionally
+                # also suppresses the freeze verdict during the grace window.
+                # Only escalate once the slate has been black past the grace.
+                if black_escalated:
+                    new_status, reason = "DOWN", "Black screen on device output"
             elif content.get("freeze"):
                 new_status, reason = "DOWN", "Frozen frame on device output"
             elif logo_escalated:

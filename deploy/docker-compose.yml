@@ -46,6 +46,9 @@ services:
       # Set "true" only when the UI is served over HTTPS (e.g. behind a TLS
       # terminator). The default LAN deploy is plain HTTP, so this stays false.
       SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
+      # Grace period (seconds) before a sustained BLACK screen alerts as DOWN.
+      # Channels often load a black slate before the show starts; default 300 (5min).
+      BLACK_GRACE_SECONDS: ${BLACK_GRACE_SECONDS:-300}
       # First-run admin bootstrap (only used when there are zero users).
       INITIAL_ADMIN_USERNAME: ${INITIAL_ADMIN_USERNAME:-admin}
       # Empty -> the API generates a random one-time password and logs it on first boot.

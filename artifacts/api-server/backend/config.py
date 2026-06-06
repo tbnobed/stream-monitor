@@ -25,6 +25,13 @@ class Settings(BaseSettings):
     silencedetect_duration: float = 3.0
     segment_stall_threshold: int = 2
 
+    # Grace period (seconds) before a sustained BLACK screen escalates a device
+    # to DOWN. Some channels load a black slate for a minute or two before the
+    # show actually starts, which would otherwise alert immediately. A black
+    # screen is also a frozen one, so the freeze verdict is suppressed for the
+    # same window. Configurable via the BLACK_GRACE_SECONDS env var (.env).
+    black_grace_seconds: float = float(os.environ.get("BLACK_GRACE_SECONDS", "300"))
+
     slack_webhook_url: str = ""
     discord_webhook_url: str = ""
     generic_webhook_url: str = ""
