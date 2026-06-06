@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { 
   useListDevices, 
   useCreateDevice, 
@@ -414,6 +414,52 @@ function LogoMonitorSection({
 
   const clamp = (n: number) => (Number.isFinite(n) ? Math.max(0, Math.min(100, n)) : 0);
 
+  const imgWrapRef = useRef<HTMLDivElement>(null);
+  const dragStart = useRef<{ x: number; y: number } | null>(null);
+  const [dragging, setDragging] = useState(false);
+
+  const pctFromEvent = (e: React.PointerEvent) => {
+    const el = imgWrapRef.current;
+    if (!el) return null;
+    const r = el.getBoundingClientRect();
+    if (r.width === 0 || r.height === 0) return null;
+    return {
+      x: clamp(((e.clientX - r.left) / r.width) * 100),
+      y: clamp(((e.clientY - r.top) / r.height) * 100),
+    };
+  };
+
+  const onPointerDown = (e: React.PointerEvent) => {
+    const p = pctFromEvent(e);
+    if (!p) return;
+    e.preventDefault();
+    (e.currentTarget as Element).setPointerCapture?.(e.pointerId);
+    dragStart.current = p;
+    setDragging(true);
+    form.setValue('logo_region_x', Math.round(p.x), { shouldDirty: true });
+    form.setValue('logo_region_y', Math.round(p.y), { shouldDirty: true });
+    form.setValue('logo_region_w', 1, { shouldDirty: true });
+    form.setValue('logo_region_h', 1, { shouldDirty: true });
+  };
+
+  const onPointerMove = (e: React.PointerEvent) => {
+    if (!dragStart.current) return;
+    const p = pctFromEvent(e);
+    if (!p) return;
+    const s = dragStart.current;
+    form.setValue('logo_region_x', Math.round(Math.min(s.x, p.x)), { shouldDirty: true });
+    form.setValue('logo_region_y', Math.round(Math.min(s.y, p.y)), { shouldDirty: true });
+    form.setValue('logo_region_w', Math.max(1, Math.round(Math.abs(p.x - s.x))), { shouldDirty: true });
+    form.setValue('logo_region_h', Math.max(1, Math.round(Math.abs(p.y - s.y))), { shouldDirty: true });
+  };
+
+  const onPointerUp = (e: React.PointerEvent) => {
+    if (!dragStart.current) return;
+    dragStart.current = null;
+    setDragging(false);
+    (e.currentTarget as Element).releasePointerCapture?.(e.pointerId);
+  };
+
   const doCapture = (save: boolean) => {
     if (!deviceId) return;
     const region = {
@@ -533,11 +579,24 @@ function LogoMonitorSection({
           {snapshot && (
             <div className="grid grid-cols-3 gap-3 pt-1">
               <div className="col-span-2">
-                <div className="text-xs text-muted-foreground mb-1">Live snapshot (region outlined)</div>
-                <div className="relative w-full overflow-hidden rounded border bg-black">
-                  <img src={snapshot} alt="stream snapshot" className="w-full block" />
+                <div className="text-xs text-muted-foreground mb-1">
+                  Live snapshot — <span className="text-foreground">click &amp; drag</span> to draw the monitored region
+                </div>
+                <div
+                  ref={imgWrapRef}
+                  onPointerDown={onPointerDown}
+                  onPointerMove={onPointerMove}
+                  onPointerUp={onPointerUp}
+                  className="relative w-full overflow-hidden rounded border bg-black touch-none select-none cursor-crosshair"
+                >
+                  <img
+                    src={snapshot}
+                    alt="stream snapshot"
+                    draggable={false}
+                    className="w-full block pointer-events-none"
+                  />
                   <div
-                    className="absolute border-2 border-primary shadow-[0_0_0_9999px_rgba(0,0,0,0.35)]"
+                    className="absolute border-2 border-primary shadow-[0_0_0_9999px_rgba(0,0,0,0.35)] pointer-events-none"
                     style={{
                       left: `${clamp(rx)}%`,
                       top: `${clamp(ry)}%`,
@@ -545,6 +604,10 @@ function LogoMonitorSection({
                       height: `${clamp(rh)}%`,
                     }}
                   />
+                </div>
+                <div className="mt-1 text-[11px] text-muted-foreground">
+                  After drawing, click <span className="text-foreground">Preview region</span> to refresh the crop, then{' '}
+                  <span className="text-foreground">Capture &amp; save reference</span>.
                 </div>
               </div>
               <div>
@@ -584,7 +647,7 @@ function LogoMonitorSection({
           {!snapshot && deviceId && (
             <div className="flex items-center gap-1 text-xs text-muted-foreground">
               <CheckCircle2 className="w-3.5 h-3.5" />
-              Draw a tight box around just the logo (avoid surrounding picture), then preview. After a reference is saved, preview shows a live match score so you can set the threshold below it.
+              Click "Preview region" to grab a live snapshot, then click &amp; drag on it to draw a tight box around just the logo (avoid surrounding picture). After a reference is saved, preview shows a live match score so you can set the threshold below it.
             </div>
           )}
         </div>
