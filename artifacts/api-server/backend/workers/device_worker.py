@@ -1,6 +1,6 @@
 import asyncio
 import math
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 from database import SessionLocal
 from models import Device, Setting
@@ -319,19 +319,40 @@ async def check_device(device_id: int):
         except asyncio.TimeoutError:
             detail = {"media_flowing": False, "error": "probe timeout"}
 
+        content = detail.get("content") or {}
+
+        # Logo grace period: ads legitimately hide the channel logo for a few
+        # minutes, so a missing logo only escalates to DOWN after it has been
+        # continuously absent for `logo_missing_grace_seconds` (default 300s /
+        # 5min). We stamp the first moment the logo went missing on the device
+        # row and clear it the instant the logo is confirmed back (or the feed
+        # drops / logo check is off), so each new disappearance gets a fresh
+        # grace window.
+        now = datetime.now(timezone.utc)
+        logo_escalated = False
+        if content.get("logo_missing"):
+            if device.logo_missing_since is None:
+                device.logo_missing_since = now
+                db.commit()
+            grace = max(0.0, get_setting_float(db, "logo_missing_grace_seconds", 300.0))
+            if (now - device.logo_missing_since).total_seconds() >= grace:
+                logo_escalated = True
+        elif device.logo_missing_since is not None:
+            device.logo_missing_since = None
+            db.commit()
+
         if detail.get("media_flowing"):
             new_status = "HEALTHY"
             reason = ""
             # The feed loads — now check the actual program (analysed inside the
             # probe from the decoded frames). Fail-open: only flip on a positive
             # detection; black takes priority over freeze (a black frame is also
-            # a frozen one).
-            content = detail.get("content") or {}
+            # a frozen one). Logo only escalates after the grace period above.
             if content.get("black"):
                 new_status, reason = "DOWN", "Black screen on device output"
             elif content.get("freeze"):
                 new_status, reason = "DOWN", "Frozen frame on device output"
-            elif content.get("logo_missing"):
+            elif logo_escalated:
                 new_status, reason = "DOWN", "Expected logo not detected"
             elif content.get("no_video"):
                 new_status, reason = "WARNING", "No video frames on device output"

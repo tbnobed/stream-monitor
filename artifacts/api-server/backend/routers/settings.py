@@ -32,6 +32,7 @@ DEFAULT_SETTINGS = {
     "discord_webhook_url": ("", "Discord webhook URL"),
     "generic_webhook_url": ("", "Generic webhook URL"),
     "alert_email_recipients": ("", "Comma-separated email addresses for SendGrid alerts"),
+    "logo_missing_grace_seconds": ("300", "Seconds the channel logo must be continuously missing before alerting (ignores ad breaks; default 300 = 5 min)"),
 }
 
 

@@ -15,4 +15,6 @@ Per-device, opt-in check that a fixed on-screen brand logo (e.g. TBN top-right) 
 
 **Why the template is never serialized:** `logo_template` is internal base64 on the Device; the API exposes only a computed `logo_reference_set` bool. Treat captured reference imagery as internal.
 
+**Grace period for ad breaks (decision):** a per-check `logo_missing` must NOT immediately flip DOWN — ads legitimately hide the channel logo for minutes. The worker stamps `Device.logo_missing_since` on the first missing cycle and only escalates after the logo is *continuously* missing past `logo_missing_grace_seconds` (global Setting, default 300=5min). **Why:** without it, every ad break = false "wrong channel" DOWN. **How to apply:** clear the timestamp on ANY non-missing cycle (logo present, feed down, check off, sparse <3-frame samples) so each fresh disappearance gets a full grace window; the timer is internal (never serialized).
+
 **How to apply:** new live-picture checks → add to the `probe_whep` tally + `_content_verdict`, gate behind a per-device enable flag, and require the ≥3-frame / ≥85% sustained guard before emitting a negative verdict.
