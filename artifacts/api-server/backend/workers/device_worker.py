@@ -136,10 +136,12 @@ async def probe_whep(
                                     freeze_ref["small"] = small
                                     freeze_ref["t"] = now
                             if logo:
-                                crop = logo_svc.crop_region(gray, logo["region"])
-                                if crop.size:
-                                    small_logo = logo_svc.resize_gray(crop)
-                                    score = logo_svc.ncc(small_logo, logo["template"])
+                                # Sliding-window match so a slightly-off box still
+                                # locks onto the logo (drift tolerance).
+                                score = logo_svc.match_score(
+                                    logo["template"], gray, logo["region"]
+                                )
+                                if score > -1.0:
                                     stats["logo_judged"] += 1
                                     stats["logo_score_sum"] += score
                                     if score >= logo["threshold"]:

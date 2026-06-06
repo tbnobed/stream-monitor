@@ -114,7 +114,7 @@ async def capture_logo_reference(
     )
     if existing_tmpl is not None and gray_crop.size:
         match_score = round(
-            logo_svc.ncc(logo_svc.resize_gray(gray_crop), existing_tmpl), 3
+            logo_svc.match_score(existing_tmpl, logo_svc.rgb_to_gray(frame), region), 3
         )
 
     saved = False

@@ -43,10 +43,10 @@ const deviceSchema = z.object({
   ip_address: z.string().optional().nullable(),
   notes: z.string().optional().nullable(),
   logo_check_enabled: z.boolean().default(false),
-  logo_region_x: z.coerce.number().min(0).max(100).default(70),
-  logo_region_y: z.coerce.number().min(0).max(100).default(3),
-  logo_region_w: z.coerce.number().min(1).max(100).default(27),
-  logo_region_h: z.coerce.number().min(1).max(100).default(16),
+  logo_region_x: z.coerce.number().min(0).max(100).default(85),
+  logo_region_y: z.coerce.number().min(0).max(100).default(4),
+  logo_region_w: z.coerce.number().min(1).max(100).default(9),
+  logo_region_h: z.coerce.number().min(1).max(100).default(6),
   logo_match_threshold: z.coerce.number().min(0).max(1).default(0.6),
 });
 
@@ -54,10 +54,10 @@ type DeviceFormValues = z.infer<typeof deviceSchema>;
 
 const LOGO_DEFAULTS = {
   logo_check_enabled: false,
-  logo_region_x: 70,
-  logo_region_y: 3,
-  logo_region_w: 27,
-  logo_region_h: 16,
+  logo_region_x: 85,
+  logo_region_y: 4,
+  logo_region_w: 9,
+  logo_region_h: 6,
   logo_match_threshold: 0.6,
 };
 

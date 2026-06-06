@@ -71,6 +71,34 @@ def ncc(a: np.ndarray, b: np.ndarray) -> float:
     return float((a * b).sum() / (na * nb))
 
 
+def match_score(
+    template: np.ndarray, frame_gray: np.ndarray, region: dict | tuple, search: float = 0.25
+) -> float:
+    """Best NCC of the template against the region, scanning small positional
+    offsets so a slightly-misaligned box still locks onto the logo.
+
+    ``search`` is the max shift tried in each direction as a fraction of the
+    region's own width/height. This gives drift tolerance: the operator's box
+    no longer has to be pixel-perfect, which was a big source of false
+    "logo missing" alerts. Returns -1.0 only if the region is entirely out of
+    bounds (no crop had any pixels).
+    """
+    if isinstance(region, dict):
+        x, y, w, h = region["x"], region["y"], region["w"], region["h"]
+    else:
+        x, y, w, h = region
+    best = -1.0
+    steps = (-search, 0.0, search)
+    for dy in steps:
+        for dx in steps:
+            crop = crop_region(frame_gray, {"x": x + dx * w, "y": y + dy * h, "w": w, "h": h})
+            if crop.size:
+                s = ncc(template, resize_gray(crop))
+                if s > best:
+                    best = s
+    return best
+
+
 def build_template_b64(gray_crop: np.ndarray) -> str:
     """Resize a grayscale crop to the template size and base64-encode raw bytes."""
     small = Image.fromarray(gray_crop.astype(np.uint8)).resize(LOGO_TEMPLATE_SIZE)
