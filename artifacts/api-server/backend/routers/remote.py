@@ -19,7 +19,6 @@ from schemas import (
     RemoteCapabilitiesOut,
     RemoteActionResult,
     RemotePairBeginOut,
-    RemoteAppOut,
 )
 from services.remote import get_driver, RemoteError
 
@@ -73,18 +72,17 @@ async def remote_status(id: int, db: Session = Depends(get_db)):
 async def remote_capabilities(id: int, db: Session = Depends(get_db)):
     device, driver = _get_driver_or_404(id, db)
     caps = driver.capabilities()
-    apps = []
-    try:
-        apps = await driver.list_apps()
-    except Exception:
-        apps = []
+    # Capabilities is on the critical path for rendering the remote, so it must
+    # stay a pure, no-network call. Enumerating installed apps (list_apps) opens
+    # a slow device connection (minutes on Apple TV) and the UI no longer shows
+    # an app launcher, so it is intentionally not called here.
     return RemoteCapabilitiesOut(
         protocol=caps.protocol,
         capable=True,
         requires_pairing=caps.requires_pairing,
         supports_app_launch=caps.supports_app_launch,
         keys=caps.keys,
-        apps=[RemoteAppOut(id=a["id"], name=a["name"]) for a in apps],
+        apps=[],
     )
 
 

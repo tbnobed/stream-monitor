@@ -17,3 +17,13 @@ Backend talks directly to each device's LAN IP via its native protocol. Devices 
 - **Drivers lazy-import their optional libs inside methods**, never at module top. This is deliberate: a missing/broken optional dep (pyatv, pychromecast, androidtvremote2, adb-shell) must disable only that one platform and return a clean error, never crash API startup. Keep new drivers following this pattern.
 
 - **Roku (ECP) needs no pairing** — just the IP. Fire TV (ADB) pairing = accept the on-TV "allow debugging" prompt (no PIN). Apple TV / Google TV require a PIN shown on the TV.
+
+## Keep the remote-render critical path network-free
+The `/capabilities` endpoint must stay a pure no-network call (protocol + key list).
+It previously called `list_apps()`, which on Apple TV (pyatv Companion) opens a full
+device connection and enumerates installed apps — minutes-slow. The frontend gates the
+entire D-pad on the capabilities query, so any network call there blocks the whole remote
+from appearing. **Why:** an operator reported the remote taking ~4 min to show up even
+though pairing/stream were fine. **How to apply:** never put device I/O (connect, scan,
+list_apps) in `status`/`capabilities`; keep it to the actual key/launch actions. Apple TV
+warm-connection reuse only helps the action path, not render.
