@@ -52,6 +52,7 @@ export function RemoteDialog({
                   streamKey={streamKey}
                   webrtcUrl={webrtcUrl}
                   className="h-full w-full"
+                  showFullscreen
                 />
               ) : (
                 <div className="flex h-full w-full items-center justify-center text-xs uppercase tracking-widest text-muted-foreground">
