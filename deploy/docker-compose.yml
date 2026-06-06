@@ -57,6 +57,12 @@ services:
       OIDC_DISCOVERY_URL: ${OIDC_DISCOVERY_URL:-}
       OIDC_REDIRECT_URI: ${OIDC_REDIRECT_URI:-}
       OIDC_DISPLAY_NAME: ${OIDC_DISPLAY_NAME:-Authentik}
+      # --- Email alerts (SendGrid) ---
+      # Email alerts turn on only when SENDGRID_API_KEY and ALERT_FROM_EMAIL are
+      # both set. Recipients are configured in-app (Settings -> alert_email_recipients).
+      SENDGRID_API_KEY: ${SENDGRID_API_KEY:-}
+      ALERT_FROM_EMAIL: ${ALERT_FROM_EMAIL:-}
+      ALERT_FROM_NAME: ${ALERT_FROM_NAME:-OTT Stream Monitor}
     depends_on:
       db:
         condition: service_healthy

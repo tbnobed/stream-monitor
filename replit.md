@@ -29,7 +29,7 @@ A full-stack broadcast NOC (Network Operations Center) tool that monitors live O
   - `workers/device_worker.py` — Device health loop (SRS API + ffmpeg)
   - `workers/hls_worker.py` — HLS health loop (manifest, rendition, segment, ffprobe, DRM)
   - `services/incident_service.py` — Shared debounce + incident open/close logic
-  - `services/alert_service.py` — Slack/Discord/generic webhook alerting
+  - `services/alert_service.py` — Slack/Discord/generic webhook + SendGrid email alerting
   - `requirements.txt` — Python dependencies
 - `lib/api-spec/openapi.yaml` — OpenAPI contract (source of truth)
 - `lib/api-client-react/` — Generated React Query hooks (from codegen)
@@ -61,7 +61,7 @@ The entire app (frontend + API) is gated. Unauthenticated API calls return 401; 
 
 - **Two roles**: `admin` (manage users + edit settings) and `operator` (view + control devices). Settings PATCH and all `/api/users` routes require admin.
 - **Local accounts**: username/password, bcrypt-hashed. On first boot, when the user table is empty, an initial admin is created from `INITIAL_ADMIN_USERNAME` (default `admin`) and `INITIAL_ADMIN_PASSWORD`. If `INITIAL_ADMIN_PASSWORD` is unset, the API generates a random one-time password and logs it once on startup (`docker compose logs api`) — no guessable `admin`/`admin` default. The `deploy/install.sh` installer also writes a random `INITIAL_ADMIN_PASSWORD` into `deploy/.env` and prints it. Change it after first login.
-- **Email on accounts**: every account has an optional, format-validated email (`UserCreate`/`UserUpdate` use Pydantic `EmailStr`, backed by `email-validator`) intended for notifications (e.g. the planned SendGrid integration). Admins set/edit it on the Users page; SSO stores the IdP email only when the token's `email_verified` is true.
+- **Email on accounts**: every account has an optional, format-validated email (`UserCreate`/`UserUpdate` use Pydantic `EmailStr`, backed by `email-validator`) intended for notifications (per-account email; note that SendGrid alert recipients are configured separately in Settings via `alert_email_recipients`). Admins set/edit it on the Users page; SSO stores the IdP email only when the token's `email_verified` is true.
 - **Optional Authentik (OIDC) SSO**: enabled only when `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, and `OIDC_DISCOVERY_URL` are all set. The login page then shows a "Sign in with {OIDC_DISPLAY_NAME}" button. SSO users are auto-provisioned as `operator`. OIDC is implemented directly with `httpx` (Authlib is blocked by the package firewall): the flow does state-CSRF in the session, then code → token (`client_secret_post`) → userinfo. Behind a reverse proxy, set `OIDC_REDIRECT_URI` to the public callback URL.
 - **Sessions**: signed cookies via Starlette `SessionMiddleware` (`SESSION_SECRET`). `same_site=lax`; set `SESSION_COOKIE_SECURE=true` only when served over HTTPS. Frontend is same-origin, so cookies are sent automatically — never set an auth token getter on the API client.
 - **Backend layout**: `auth.py` (hashing, `get_current_user`, `require_admin`), `routers/auth.py` (`/config`, `/login`, `/logout`, `/me`, `/sso/login`, `/sso/callback`), `routers/users.py` (admin CRUD with last-admin guards). `config.py` reads `SESSION_*`, `OIDC_*`, `INITIAL_ADMIN_*`.
@@ -80,6 +80,8 @@ Go to `/hls-streams` → "Add Stream". Enter name and master `.m3u8` URL. Health
 
 Go to `/settings`. Paste Slack/Discord/generic webhook URLs. Toggle `alerts_enabled` and `alert_on_warning`. Save.
 
+**Email (SendGrid)**: email alerts fire on the same incident open/resolve events. Enable by setting `SENDGRID_API_KEY` and a verified sender `ALERT_FROM_EMAIL` (env vars — in `deploy/.env` for the self-hosted deploy; optionally `ALERT_FROM_NAME`). Then set recipients in `/settings` → `alert_email_recipients` (comma-separated). Email is skipped unless the key, sender, and at least one recipient are all present. Implemented with `httpx` directly against the SendGrid v3 API (`services/alert_service.py: _send_email_alert`), no SDK.
+
 ## How SRS WHEP playback works
 
 1. Browser initiates WebRTC via `SrsRtcWhipWhepAsync` pointing at `/api/proxy/whep?stream={key}`
@@ -93,7 +95,12 @@ Every 30s (configurable): manifest fetch → rendition audit → media-sequence 
 
 ## How device detection works
 
-Every 15s (configurable): SRS API publisher check + ffmpeg blackdetect/freezedetect/silencedetect on the RTMP ingest URL. Frame thumbnail captured on DOWN/WARNING transitions.
+Two layers, every 15s (configurable):
+
+1. **Feed loads?** A real WHEP (WebRTC) probe opens the device's stream and confirms decoded media frames actually arrive (`probe_whep`). SRS returns 201 even for a non-existent stream, so frames flowing is the only reliable "the capture is up" signal.
+2. **Program alive?** When the feed loads, `analyze_device_content` pulls a few seconds of the device's **RTMP ingest** and runs ffmpeg `blackdetect`/`freezedetect` (video) + `silencedetect` (audio) on the *actual picture/audio*. A black or frozen screen → **DOWN**; sustained silence → **WARNING**. This catches a device stuck on a black/frozen/silent program that still delivers WebRTC frames (which would otherwise read HEALTHY).
+
+Content analysis **fails open**: any ffmpeg/pull error (e.g. unreachable RTMP) leaves the verdict untouched, so it never causes a false DOWN. It is gated by `device_content_check_enabled` and tuned by the existing blackdetect/freezedetect/silencedetect thresholds plus `device_content_sample_seconds` (all in Settings). **The backend must be able to reach the RTMP ingest (port 1935) for this layer to do anything** — it works on the LAN deploy but is blocked in the Replit dev sandbox.
 
 ## Dependencies
 

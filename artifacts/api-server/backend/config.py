@@ -31,6 +31,13 @@ class Settings(BaseSettings):
     alert_on_warning: bool = False
     alerts_enabled: bool = True
 
+    # --- Email alerts (SendGrid) ---
+    # Email is enabled only when both the API key and a verified sender address
+    # are set. Recipients are configured in-app (Settings -> alert_email_recipients).
+    sendgrid_api_key: str = os.environ.get("SENDGRID_API_KEY", "")
+    alert_from_email: str = os.environ.get("ALERT_FROM_EMAIL", "")
+    alert_from_name: str = os.environ.get("ALERT_FROM_NAME", "OTT Stream Monitor")
+
     # --- Authentication ---
     session_secret: str = os.environ.get("SESSION_SECRET", "")
     # Set true only when served over HTTPS (e.g. behind a TLS terminator). The

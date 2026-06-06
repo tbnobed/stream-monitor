@@ -19,6 +19,9 @@ for _noisy in ("aioice.ice", "aiortc.codecs.h264", "aiortc.rtcrtpreceiver"):
 # Limit concurrent WHEP media probes to avoid resource exhaustion.
 probe_semaphore = asyncio.Semaphore(4)
 
+# Limit concurrent ffmpeg content-analysis processes (separate from WHEP probes).
+ffmpeg_semaphore = asyncio.Semaphore(4)
+
 # A stream is considered loading once this many decoded media frames arrive.
 FRAME_THRESHOLD = 3
 
@@ -26,6 +29,14 @@ FRAME_THRESHOLD = 3
 def get_setting(db: Session, key: str, default: str) -> str:
     s = db.query(Setting).filter(Setting.key == key).first()
     return s.value if s else default
+
+
+def get_setting_float(db: Session, key: str, default: float) -> float:
+    """Numeric setting with a safe fallback so one operator typo can't abort a check."""
+    try:
+        return float(get_setting(db, key, str(default)))
+    except (TypeError, ValueError):
+        return default
 
 
 async def probe_whep(whep_base: str, app: str, stream_key: str, timeout: float = 8.0) -> dict:
@@ -114,6 +125,77 @@ async def probe_whep(whep_base: str, app: str, stream_key: str, timeout: float =
                 pass
 
 
+async def analyze_device_content(
+    rtmp_url: str,
+    sample_seconds: float,
+    black_d: float,
+    black_th: float,
+    freeze_n: float,
+    freeze_d: float,
+    sil_n: str,
+    sil_d: float,
+) -> dict:
+    """Inspect the device's ACTUAL program, not just that the feed loads.
+
+    WHEP frames flowing only proves the capture pipeline is up — a device stuck
+    on a black screen, a frozen frame, or a silent spinner still delivers frames
+    and would otherwise read HEALTHY. This pulls a few seconds of the device's
+    RTMP ingest and runs ffmpeg blackdetect/freezedetect (video) + silencedetect
+    (audio). Each filter only emits when its duration threshold is exceeded, so a
+    marker means a *sustained* problem.
+
+    Fails OPEN: any tooling/pull error returns analyzed=False and never flips a
+    loading stream to DOWN just because ffmpeg could not read it.
+    """
+    vf = f"blackdetect=d={black_d}:pix_th={black_th},freezedetect=n={freeze_n}:d={freeze_d}"
+    af = f"silencedetect=n={sil_n}:d={sil_d}"
+    cmd = [
+        "ffmpeg", "-hide_banner", "-nostats",
+        # Abort fast if the ingest can't be reached / stalls, instead of hanging
+        # until our asyncio kill (keeps the worker loop responsive).
+        "-rw_timeout", "8000000",
+        "-i", rtmp_url,
+        "-t", str(sample_seconds),
+        "-vf", vf,
+        "-af", af,
+        "-f", "null", "-",
+    ]
+    async with ffmpeg_semaphore:
+        try:
+            proc = await asyncio.create_subprocess_exec(
+                *cmd,
+                stdout=asyncio.subprocess.DEVNULL,
+                stderr=asyncio.subprocess.PIPE,
+            )
+        except FileNotFoundError:
+            return {"analyzed": False, "error": "ffmpeg not found"}
+        try:
+            _, stderr = await asyncio.wait_for(
+                proc.communicate(), timeout=sample_seconds + 12
+            )
+        except asyncio.TimeoutError:
+            try:
+                proc.kill()
+                await proc.wait()
+            except Exception:
+                pass
+            return {"analyzed": False, "error": "content analysis timeout"}
+
+        text = stderr.decode(errors="ignore")
+        if "Input #0" not in text:
+            return {
+                "analyzed": False,
+                "error": "could not open device stream",
+                "returncode": proc.returncode,
+            }
+        return {
+            "analyzed": True,
+            "black": "black_start" in text,
+            "freeze": "freeze_start" in text,
+            "silence": "silence_start" in text,
+        }
+
+
 async def check_device(device_id: int):
     """Health = can we actually load video/audio from the device's WHEP address."""
     db = SessionLocal()
@@ -137,6 +219,37 @@ async def check_device(device_id: int):
         if detail.get("media_flowing"):
             new_status = "HEALTHY"
             reason = ""
+            # The feed loads — now verify the actual program is alive
+            # (black/freeze/silence), not just that frames arrive.
+            content_enabled = get_setting(db, "device_content_check_enabled", "true").lower() == "true"
+            if content_enabled and device.srs_stream_key:
+                rtmp_base = get_setting(db, "rtmp_ingest_base_url", "rtmp://cdn1.obedtv.live:1935/live")
+                rtmp_url = f"{rtmp_base.rstrip('/')}/{device.srs_stream_key}"
+                sample_seconds = get_setting_float(db, "device_content_sample_seconds", 5.0)
+                try:
+                    content = await asyncio.wait_for(
+                        analyze_device_content(
+                            rtmp_url,
+                            sample_seconds,
+                            get_setting_float(db, "blackdetect_duration", 2.0),
+                            get_setting_float(db, "blackdetect_threshold", 0.10),
+                            get_setting_float(db, "freezedetect_noise", 0.003),
+                            get_setting_float(db, "freezedetect_duration", 2.0),
+                            get_setting(db, "silencedetect_noise", "-50dB"),
+                            get_setting_float(db, "silencedetect_duration", 3.0),
+                        ),
+                        timeout=sample_seconds + 15,
+                    )
+                except asyncio.TimeoutError:
+                    content = {"analyzed": False, "error": "content analysis timeout"}
+                detail["content"] = content
+                # Fail-open: only flip on a positive detection.
+                if content.get("black"):
+                    new_status, reason = "DOWN", "Black screen on device output"
+                elif content.get("freeze"):
+                    new_status, reason = "DOWN", "Frozen frame on device output"
+                elif content.get("silence"):
+                    new_status, reason = "WARNING", "Silent audio on device output"
         elif detail.get("http_status") not in (200, 201):
             new_status = "DOWN"
             reason = f"WHEP handshake failed (HTTP {detail.get('http_status')})"

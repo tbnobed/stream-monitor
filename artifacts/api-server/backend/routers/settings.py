@@ -23,11 +23,15 @@ DEFAULT_SETTINGS = {
     "freezedetect_duration": ("2.0", "ffmpeg freezedetect duration (s)"),
     "silencedetect_noise": ("-50dB", "ffmpeg silencedetect noise threshold"),
     "silencedetect_duration": ("3.0", "ffmpeg silencedetect duration (s)"),
+    "freezedetect_noise": ("0.003", "ffmpeg freezedetect noise threshold"),
+    "device_content_check_enabled": ("true", "Analyze device picture/audio (black/freeze/silence), not just that the feed loads"),
+    "device_content_sample_seconds": ("5", "Seconds of device stream to sample for content analysis"),
     "alerts_enabled": ("true", "Enable alerting"),
     "alert_on_warning": ("false", "Send alerts for WARNING status too"),
     "slack_webhook_url": ("", "Slack incoming webhook URL"),
     "discord_webhook_url": ("", "Discord webhook URL"),
     "generic_webhook_url": ("", "Generic webhook URL"),
+    "alert_email_recipients": ("", "Comma-separated email addresses for SendGrid alerts"),
 }
 
 
