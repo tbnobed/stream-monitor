@@ -32,6 +32,13 @@ CONTENT_MIN_FRAMES = 3
 # Fraction of judged frames that must be bad before we call it a sustained problem.
 CONTENT_BAD_RATIO = 0.85
 
+# Freeze is judged over time, not frame-to-frame. Comparing immediately-consecutive
+# frames at full frame rate makes low-motion live content (a locked-off camera on a
+# speaker) read as "frozen" because per-frame change is tiny. We instead compare each
+# frame against a reference grabbed at least this many seconds earlier: real content
+# accumulates clear change over a second, while a true freeze stays ~0 even seconds apart.
+FREEZE_INTERVAL_SECONDS = 1.0
+
 
 def get_setting(db: Session, key: str, default: str) -> str:
     s = db.query(Setting).filter(Setting.key == key).first()
@@ -84,7 +91,7 @@ async def probe_whep(
             "audio_judged": 0, "silence": 0,
             "logo_judged": 0, "logo_match": 0, "logo_score_sum": 0.0,
         }
-        prev_luma = {"small": None}
+        freeze_ref = {"small": None, "t": 0.0}
         reader_tasks: list[asyncio.Task] = []
 
         @pc.on("track")
@@ -107,12 +114,19 @@ async def probe_whep(
                                 stats["video_judged"] += 1
                                 if float(small.mean()) < content["black_luma"]:
                                     stats["black"] += 1
-                                prev = prev_luma["small"]
-                                if prev is not None and prev.shape == small.shape:
+                                # Freeze = no change over a ~1s span, NOT frame-to-frame:
+                                # compare against a reference grabbed >= FREEZE_INTERVAL ago.
+                                now = asyncio.get_event_loop().time()
+                                ref = freeze_ref["small"]
+                                if ref is None or ref.shape != small.shape:
+                                    freeze_ref["small"] = small
+                                    freeze_ref["t"] = now
+                                elif now - freeze_ref["t"] >= FREEZE_INTERVAL_SECONDS:
                                     stats["freeze_judged"] += 1
-                                    if float(np.abs(small - prev).mean()) < content["freeze_diff"]:
+                                    if float(np.abs(small - ref).mean()) < content["freeze_diff"]:
                                         stats["freeze"] += 1
-                                prev_luma["small"] = small
+                                    freeze_ref["small"] = small
+                                    freeze_ref["t"] = now
                             if logo:
                                 crop = logo_svc.crop_region(gray, logo["region"])
                                 if crop.size:
