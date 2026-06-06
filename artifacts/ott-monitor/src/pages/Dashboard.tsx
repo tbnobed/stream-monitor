@@ -80,6 +80,7 @@ export default function Dashboard() {
             {devices?.map((device) => {
               const liveStatus = deviceStatuses[device.id]?.status || device.current_status;
               const isDown = liveStatus === 'DOWN';
+              const reason = (liveStatus === 'DOWN' || liveStatus === 'WARNING') ? device.failure_reason : null;
               return (
                 <Card key={device.id} className={`bg-card overflow-hidden border ${isDown ? 'border-status-down shadow-[0_0_15px_rgba(255,0,0,0.2)]' : 'border-border'}`}>
                   <CardHeader className="p-3 bg-secondary/50 border-b flex flex-row items-center justify-between space-y-0">
@@ -120,6 +121,11 @@ export default function Dashboard() {
                         </div>
                       )}
                     </div>
+                    {reason && (
+                      <div className={`px-2 py-1 text-[10px] font-medium border-t ${isDown ? 'bg-status-down/15 text-status-down border-status-down/30' : 'bg-status-warning/15 text-status-warning border-status-warning/30'}`} title={reason}>
+                        <span className="truncate block">{reason}</span>
+                      </div>
+                    )}
                     <div className="p-2 text-[10px] text-muted-foreground flex justify-between items-center border-t border-border/50 bg-secondary/20 font-mono">
                       <span className="truncate max-w-[200px]" title={device.srs_stream_key}>{device.srs_stream_key}</span>
                       <span>{device.last_checked_at ? new Date(device.last_checked_at).toLocaleTimeString() : 'N/A'}</span>

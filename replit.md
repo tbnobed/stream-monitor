@@ -102,10 +102,23 @@ Two layers, every 15s (configurable):
 
 Content analysis **fails open**: a verdict is only positive when ≥3 frames were judged and the bad fraction is sustained (≥85%), so sparse/odd samples never flip a loading stream; any frame-decode error is swallowed and never causes a false DOWN. It is gated by `device_content_check_enabled` and tuned via `device_content_sample_seconds` plus the existing threshold keys, reinterpreted for per-frame analysis: `blackdetect_threshold` (×255 → black luma cutoff), `freezedetect_noise` (×255 → freeze diff cutoff), `silencedetect_noise` (dBFS, e.g. `-50dB`). The probe samples the full window when content analysis is on so it gathers enough video frames to judge (audio alone would otherwise break the loop early with ~0 video frames). The old `*_duration` and `rtmp_ingest_base_url` settings are now unused.
 
+## How logo-presence detection works
+
+Per-device, opt-in. Catches a wrong/lost channel by verifying a fixed on-screen brand logo (e.g. TBN, top-right) is still present in the live picture.
+
+- **Setup (operator)**: On `/devices`, edit a device → "Logo Presence Monitoring" → toggle on, set the logo's region as top-left X/Y + width/height **percentages** (defaults target a top-right logo), then "Preview region" (shows a live snapshot with the box overlaid + the crop) and "Capture & save reference". Saving grabs a live WHEP frame, stores a 48×48 grayscale template (base64, internal — never exposed via API), the region (fractions), and the match threshold on the Device, and enables the check.
+- **Detection**: piggybacks on the **same WHEP frames** the content analysis already decodes (no extra connection). Each frame's region is cropped, resized to 48×48 gray, and scored against the template via zero-mean **normalized cross-correlation (NCC)**; a frame "has the logo" when NCC ≥ `logo_match_threshold` (default 0.6). Verdict `logo_missing` → **DOWN** ("Expected logo not detected"), ordered after black/freeze and before no-video/silence.
+- **Fails open**: `logo_missing` only fires when ≥3 frames were judged AND ≥85% of them lacked the logo, so partial loads / sparse samples never cause a false DOWN. Disabled, or with no saved template/region, the check is skipped entirely.
+- **Data model**: `Device.logo_check_enabled` (bool), `logo_region` (JSON `{x,y,w,h}` fractions), `logo_match_threshold` (float), `logo_template` (Text base64, internal). `DeviceOut` exposes only the computed `logo_reference_set` flag, never the template.
+- **Capture endpoint**: `POST /devices/{id}/logo/reference` `{region, save, threshold?}` → returns `snapshot`/`crop` data URLs (+ dims); when `save=true`, persists template/region/threshold and enables monitoring. Region/threshold are bounds-validated (fractions 0–1).
+- **Wall**: device tiles now show the `failure_reason` text under the video on DOWN/WARNING (so a missing-logo alert reads clearly).
+- Code: `services/logo.py` (template/NCC/frame-grab), `workers/device_worker.py` (`probe_whep` logo tally + `_content_verdict` + `check_device` mapping), `routers/devices.py` (capture endpoint), frontend `pages/Devices.tsx` (`LogoMonitorSection`).
+
 ## Dependencies
 
 - `ffmpeg` and `ffprobe` must be available on PATH for HLS deep validation (device content analysis no longer needs ffmpeg — it analyses decoded WebRTC frames with numpy)
 - `numpy` — used by the device worker to analyse decoded WHEP video/audio frames (black/freeze/silence)
+- `pillow` (PIL) — used by `services/logo.py` to encode snapshot/crop preview images (JPEG/PNG data URLs) and resize logo templates
 - PostgreSQL (auto-provisioned by Replit)
 
 ## Self-hosted Docker deployment (Ubuntu LAN)
@@ -132,7 +145,8 @@ _Populate as you build._
 - The backend runs from `artifacts/api-server/backend/` with absolute paths — do not change the artifact.toml run command to relative paths
 - The `.deps_installed` sentinel file in `backend/` prevents pip re-installs on every restart
 - SQLAlchemy models auto-create tables on startup — Alembic migrations not yet wired for production; use the Replit Publish flow for schema changes
-- `create_all` does NOT alter existing tables. New columns on an existing model must be added with `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`. Startup in `main.py` runs idempotent `ALTER TABLE devices ADD COLUMN IF NOT EXISTS` statements (for `ip_address`, `remote_config`) right after `create_all`, so existing deployments self-heal on boot. When you add a new column to an existing model, add a matching `ADD COLUMN IF NOT EXISTS` line there.
+- `create_all` does NOT alter existing tables. New columns on an existing model must be added with `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`. Startup in `main.py` runs idempotent `ALTER TABLE devices ADD COLUMN IF NOT EXISTS` statements (for `ip_address`, `remote_config`, and the logo columns `logo_check_enabled`, `logo_region`, `logo_match_threshold`, `logo_template`) right after `create_all`, so existing deployments self-heal on boot. When you add a new column to an existing model, add a matching `ADD COLUMN IF NOT EXISTS` line there.
+- Non-null columns + a nullable PATCH schema: `DeviceUpdate` allows omitting fields, but `logo_check_enabled`/`logo_match_threshold` are NON-NULL in the DB. `routers/devices.py: update_device` skips explicit `null` for those keys so a stray `null` can't trigger a 500 integrity error. Pydantic `Field(ge/le)` bounds on `LogoRegion`/threshold reject out-of-range values with 422.
 
 ## Pointers
 

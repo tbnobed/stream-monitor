@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { DeviceUpdatePlatform } from './deviceUpdatePlatform';
+import type { LogoRegion } from './logoRegion';
 
 export interface DeviceUpdate {
   /** @nullable */
@@ -24,4 +25,9 @@ export interface DeviceUpdate {
   notes?: string | null;
   /** @nullable */
   ip_address?: string | null;
+  /** @nullable */
+  logo_check_enabled?: boolean | null;
+  logo_region?: LogoRegion | null;
+  /** @nullable */
+  logo_match_threshold?: number | null;
 }

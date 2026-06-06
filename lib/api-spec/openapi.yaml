@@ -216,6 +216,31 @@ paths:
               schema:
                 $ref: "#/components/schemas/RemoteCapabilities"
 
+  /devices/{id}/logo/reference:
+    post:
+      operationId: captureLogoReference
+      tags: [devices]
+      summary: Capture a live frame to set/preview a device's logo reference
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LogoReferenceInput"
+      responses:
+        "200":
+          description: Snapshot and optional saved reference
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LogoReferenceResult"
+
   /devices/{id}/remote/key:
     post:
       operationId: sendRemoteKey
@@ -959,6 +984,37 @@ components:
           type: boolean
         remote_paired:
           type: boolean
+        logo_check_enabled:
+          type: boolean
+        logo_region:
+          oneOf:
+            - $ref: "#/components/schemas/LogoRegion"
+            - type: "null"
+        logo_match_threshold:
+          type: number
+        logo_reference_set:
+          type: boolean
+
+    LogoRegion:
+      type: object
+      required: [x, y, w, h]
+      properties:
+        x:
+          type: number
+          minimum: 0
+          maximum: 1
+        y:
+          type: number
+          minimum: 0
+          maximum: 1
+        w:
+          type: number
+          exclusiveMinimum: 0
+          maximum: 1
+        h:
+          type: number
+          exclusiveMinimum: 0
+          maximum: 1
 
     DeviceInput:
       type: object
@@ -983,6 +1039,16 @@ components:
           type: ["string", "null"]
         ip_address:
           type: ["string", "null"]
+        logo_check_enabled:
+          type: boolean
+          default: false
+        logo_region:
+          oneOf:
+            - $ref: "#/components/schemas/LogoRegion"
+            - type: "null"
+        logo_match_threshold:
+          type: number
+          default: 0.6
 
     DeviceUpdate:
       type: object
@@ -1004,6 +1070,45 @@ components:
           type: ["string", "null"]
         ip_address:
           type: ["string", "null"]
+        logo_check_enabled:
+          type: ["boolean", "null"]
+        logo_region:
+          oneOf:
+            - $ref: "#/components/schemas/LogoRegion"
+            - type: "null"
+        logo_match_threshold:
+          type: ["number", "null"]
+
+    LogoReferenceInput:
+      type: object
+      required: [region]
+      properties:
+        region:
+          $ref: "#/components/schemas/LogoRegion"
+        save:
+          type: boolean
+          default: false
+        threshold:
+          type: ["number", "null"]
+
+    LogoReferenceResult:
+      type: object
+      required: [captured, saved]
+      properties:
+        captured:
+          type: boolean
+        saved:
+          type: boolean
+        message:
+          type: ["string", "null"]
+        snapshot:
+          type: ["string", "null"]
+        crop:
+          type: ["string", "null"]
+        width:
+          type: ["integer", "null"]
+        height:
+          type: ["integer", "null"]
 
     HlsStream:
       type: object

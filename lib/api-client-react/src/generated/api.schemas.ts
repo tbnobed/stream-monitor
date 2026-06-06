@@ -68,6 +68,29 @@ export const DeviceCurrentStatus = {
   UNKNOWN: 'UNKNOWN',
 } as const;
 
+export interface LogoRegion {
+  /**
+     * @minimum 0
+     * @maximum 1
+     */
+  x: number;
+  /**
+     * @minimum 0
+     * @maximum 1
+     */
+  y: number;
+  /**
+     * @maximum 1
+     * @exclusiveMinimum 0
+     */
+  w: number;
+  /**
+     * @maximum 1
+     * @exclusiveMinimum 0
+     */
+  h: number;
+}
+
 export interface Device {
   id: number;
   name: string;
@@ -91,6 +114,10 @@ export interface Device {
   remote_capable?: boolean;
   remote_requires_pairing?: boolean;
   remote_paired?: boolean;
+  logo_check_enabled?: boolean;
+  logo_region?: LogoRegion | null;
+  logo_match_threshold?: number;
+  logo_reference_set?: boolean;
 }
 
 export type DeviceInputPlatform = typeof DeviceInputPlatform[keyof typeof DeviceInputPlatform];
@@ -116,6 +143,9 @@ export interface DeviceInput {
   notes?: string | null;
   /** @nullable */
   ip_address?: string | null;
+  logo_check_enabled?: boolean;
+  logo_region?: LogoRegion | null;
+  logo_match_threshold?: number;
 }
 
 /**
@@ -149,6 +179,33 @@ export interface DeviceUpdate {
   notes?: string | null;
   /** @nullable */
   ip_address?: string | null;
+  /** @nullable */
+  logo_check_enabled?: boolean | null;
+  logo_region?: LogoRegion | null;
+  /** @nullable */
+  logo_match_threshold?: number | null;
+}
+
+export interface LogoReferenceInput {
+  region: LogoRegion;
+  save?: boolean;
+  /** @nullable */
+  threshold?: number | null;
+}
+
+export interface LogoReferenceResult {
+  captured: boolean;
+  saved: boolean;
+  /** @nullable */
+  message?: string | null;
+  /** @nullable */
+  snapshot?: string | null;
+  /** @nullable */
+  crop?: string | null;
+  /** @nullable */
+  width?: number | null;
+  /** @nullable */
+  height?: number | null;
 }
 
 export type HlsStreamCurrentStatus = typeof HlsStreamCurrentStatus[keyof typeof HlsStreamCurrentStatus];

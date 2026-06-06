@@ -22,6 +22,11 @@ class Device(Base):
     pending_status = Column(String(20), nullable=True)
     ip_address = Column(String(64), nullable=True)
     remote_config = Column(JSON, nullable=True)
+    # Per-device logo-presence monitoring (e.g. a fixed brand bug in a corner).
+    logo_check_enabled = Column(Boolean, nullable=False, default=False)
+    logo_region = Column(JSON, nullable=True)  # {x, y, w, h} as 0..1 fractions
+    logo_match_threshold = Column(Float, nullable=False, default=0.6)
+    logo_template = Column(Text, nullable=True)  # base64 grayscale ref crop (internal)
 
     check_results = relationship("CheckResult", back_populates="device", cascade="all, delete-orphan")
     incidents = relationship("Incident", back_populates="device", cascade="all, delete-orphan")

@@ -1,6 +1,13 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 from typing import Optional, Any
 from datetime import datetime
+
+
+class LogoRegion(BaseModel):
+    x: float = Field(ge=0.0, le=1.0)
+    y: float = Field(ge=0.0, le=1.0)
+    w: float = Field(gt=0.0, le=1.0)
+    h: float = Field(gt=0.0, le=1.0)
 
 
 class DeviceBase(BaseModel):
@@ -12,6 +19,9 @@ class DeviceBase(BaseModel):
     webrtc_url: Optional[str] = None
     notes: Optional[str] = None
     ip_address: Optional[str] = None
+    logo_check_enabled: bool = False
+    logo_region: Optional[LogoRegion] = None
+    logo_match_threshold: float = Field(default=0.6, ge=0.0, le=1.0)
 
 
 class DeviceInput(DeviceBase):
@@ -27,6 +37,9 @@ class DeviceUpdate(BaseModel):
     webrtc_url: Optional[str] = None
     notes: Optional[str] = None
     ip_address: Optional[str] = None
+    logo_check_enabled: Optional[bool] = None
+    logo_region: Optional[LogoRegion] = None
+    logo_match_threshold: Optional[float] = Field(default=None, ge=0.0, le=1.0)
 
 
 class DeviceOut(DeviceBase):
@@ -39,9 +52,27 @@ class DeviceOut(DeviceBase):
     remote_capable: bool = False
     remote_requires_pairing: bool = False
     remote_paired: bool = False
+    # True once a logo reference template has been captured (template not exposed).
+    logo_reference_set: bool = False
 
     class Config:
         from_attributes = True
+
+
+class LogoReferenceRequest(BaseModel):
+    region: LogoRegion
+    save: bool = False
+    threshold: Optional[float] = Field(default=None, ge=0.0, le=1.0)
+
+
+class LogoReferenceResult(BaseModel):
+    captured: bool
+    message: Optional[str] = None
+    snapshot: Optional[str] = None  # data URL (JPEG) of the full frame
+    crop: Optional[str] = None      # data URL (PNG) of the cropped region
+    width: Optional[int] = None
+    height: Optional[int] = None
+    saved: bool = False
 
 
 class HlsStreamBase(BaseModel):

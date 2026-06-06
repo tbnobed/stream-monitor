@@ -7,6 +7,7 @@
  */
 import type { DeviceCurrentStatus } from './deviceCurrentStatus';
 import type { DevicePlatform } from './devicePlatform';
+import type { LogoRegion } from './logoRegion';
 
 export interface Device {
   id: number;
@@ -31,4 +32,8 @@ export interface Device {
   remote_capable?: boolean;
   remote_requires_pairing?: boolean;
   remote_paired?: boolean;
+  logo_check_enabled?: boolean;
+  logo_region?: LogoRegion | null;
+  logo_match_threshold?: number;
+  logo_reference_set?: boolean;
 }

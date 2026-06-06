@@ -19,6 +19,20 @@ export const HealthCheckResponse = zod.object({
 /**
  * @summary List all devices
  */
+export const listDevicesResponseLogoRegionOneXMin = 0;
+export const listDevicesResponseLogoRegionOneXMax = 1;
+
+export const listDevicesResponseLogoRegionOneYMin = 0;
+export const listDevicesResponseLogoRegionOneYMax = 1;
+
+export const listDevicesResponseLogoRegionOneWExclusiveMin = 0;
+export const listDevicesResponseLogoRegionOneWMax = 1;
+
+export const listDevicesResponseLogoRegionOneHExclusiveMin = 0;
+export const listDevicesResponseLogoRegionOneHMax = 1;
+
+
+
 export const ListDevicesResponseItem = zod.object({
   "id": zod.number(),
   "name": zod.string(),
@@ -35,7 +49,16 @@ export const ListDevicesResponseItem = zod.object({
   "remote_protocol": zod.string().nullish(),
   "remote_capable": zod.boolean().optional(),
   "remote_requires_pairing": zod.boolean().optional(),
-  "remote_paired": zod.boolean().optional()
+  "remote_paired": zod.boolean().optional(),
+  "logo_check_enabled": zod.boolean().optional(),
+  "logo_region": zod.union([zod.object({
+  "x": zod.number().min(listDevicesResponseLogoRegionOneXMin).max(listDevicesResponseLogoRegionOneXMax),
+  "y": zod.number().min(listDevicesResponseLogoRegionOneYMin).max(listDevicesResponseLogoRegionOneYMax),
+  "w": zod.number().gt(listDevicesResponseLogoRegionOneWExclusiveMin).max(listDevicesResponseLogoRegionOneWMax),
+  "h": zod.number().gt(listDevicesResponseLogoRegionOneHExclusiveMin).max(listDevicesResponseLogoRegionOneHMax)
+}),zod.null()]).optional(),
+  "logo_match_threshold": zod.number().optional(),
+  "logo_reference_set": zod.boolean().optional()
 })
 export const ListDevicesResponse = zod.array(ListDevicesResponseItem)
 
@@ -45,6 +68,20 @@ export const ListDevicesResponse = zod.array(ListDevicesResponseItem)
  */
 export const createDeviceBodySrsAppDefault = `live`;
 export const createDeviceBodyEnabledDefault = true;
+export const createDeviceBodyLogoCheckEnabledDefault = false;
+export const createDeviceBodyLogoRegionOneXMin = 0;
+export const createDeviceBodyLogoRegionOneXMax = 1;
+
+export const createDeviceBodyLogoRegionOneYMin = 0;
+export const createDeviceBodyLogoRegionOneYMax = 1;
+
+export const createDeviceBodyLogoRegionOneWExclusiveMin = 0;
+export const createDeviceBodyLogoRegionOneWMax = 1;
+
+export const createDeviceBodyLogoRegionOneHExclusiveMin = 0;
+export const createDeviceBodyLogoRegionOneHMax = 1;
+
+export const createDeviceBodyLogoMatchThresholdDefault = 0.6;
 
 export const CreateDeviceBody = zod.object({
   "name": zod.string(),
@@ -54,7 +91,15 @@ export const CreateDeviceBody = zod.object({
   "enabled": zod.boolean().default(createDeviceBodyEnabledDefault),
   "webrtc_url": zod.string().nullish(),
   "notes": zod.string().nullish(),
-  "ip_address": zod.string().nullish()
+  "ip_address": zod.string().nullish(),
+  "logo_check_enabled": zod.boolean().default(createDeviceBodyLogoCheckEnabledDefault),
+  "logo_region": zod.union([zod.object({
+  "x": zod.number().min(createDeviceBodyLogoRegionOneXMin).max(createDeviceBodyLogoRegionOneXMax),
+  "y": zod.number().min(createDeviceBodyLogoRegionOneYMin).max(createDeviceBodyLogoRegionOneYMax),
+  "w": zod.number().gt(createDeviceBodyLogoRegionOneWExclusiveMin).max(createDeviceBodyLogoRegionOneWMax),
+  "h": zod.number().gt(createDeviceBodyLogoRegionOneHExclusiveMin).max(createDeviceBodyLogoRegionOneHMax)
+}),zod.null()]).optional(),
+  "logo_match_threshold": zod.number().default(createDeviceBodyLogoMatchThresholdDefault)
 })
 
 
@@ -64,6 +109,20 @@ export const CreateDeviceBody = zod.object({
 export const GetDeviceParams = zod.object({
   "id": zod.coerce.number()
 })
+
+export const getDeviceResponseLogoRegionOneXMin = 0;
+export const getDeviceResponseLogoRegionOneXMax = 1;
+
+export const getDeviceResponseLogoRegionOneYMin = 0;
+export const getDeviceResponseLogoRegionOneYMax = 1;
+
+export const getDeviceResponseLogoRegionOneWExclusiveMin = 0;
+export const getDeviceResponseLogoRegionOneWMax = 1;
+
+export const getDeviceResponseLogoRegionOneHExclusiveMin = 0;
+export const getDeviceResponseLogoRegionOneHMax = 1;
+
+
 
 export const GetDeviceResponse = zod.object({
   "id": zod.number(),
@@ -81,7 +140,16 @@ export const GetDeviceResponse = zod.object({
   "remote_protocol": zod.string().nullish(),
   "remote_capable": zod.boolean().optional(),
   "remote_requires_pairing": zod.boolean().optional(),
-  "remote_paired": zod.boolean().optional()
+  "remote_paired": zod.boolean().optional(),
+  "logo_check_enabled": zod.boolean().optional(),
+  "logo_region": zod.union([zod.object({
+  "x": zod.number().min(getDeviceResponseLogoRegionOneXMin).max(getDeviceResponseLogoRegionOneXMax),
+  "y": zod.number().min(getDeviceResponseLogoRegionOneYMin).max(getDeviceResponseLogoRegionOneYMax),
+  "w": zod.number().gt(getDeviceResponseLogoRegionOneWExclusiveMin).max(getDeviceResponseLogoRegionOneWMax),
+  "h": zod.number().gt(getDeviceResponseLogoRegionOneHExclusiveMin).max(getDeviceResponseLogoRegionOneHMax)
+}),zod.null()]).optional(),
+  "logo_match_threshold": zod.number().optional(),
+  "logo_reference_set": zod.boolean().optional()
 })
 
 
@@ -92,6 +160,20 @@ export const UpdateDeviceParams = zod.object({
   "id": zod.coerce.number()
 })
 
+export const updateDeviceBodyLogoRegionOneXMin = 0;
+export const updateDeviceBodyLogoRegionOneXMax = 1;
+
+export const updateDeviceBodyLogoRegionOneYMin = 0;
+export const updateDeviceBodyLogoRegionOneYMax = 1;
+
+export const updateDeviceBodyLogoRegionOneWExclusiveMin = 0;
+export const updateDeviceBodyLogoRegionOneWMax = 1;
+
+export const updateDeviceBodyLogoRegionOneHExclusiveMin = 0;
+export const updateDeviceBodyLogoRegionOneHMax = 1;
+
+
+
 export const UpdateDeviceBody = zod.object({
   "name": zod.string().nullish(),
   "platform": zod.union([zod.literal('roku'),zod.literal('firetv'),zod.literal('chromecast'),zod.literal('appletv'),zod.literal('other'),zod.literal(null)]).nullish(),
@@ -100,8 +182,30 @@ export const UpdateDeviceBody = zod.object({
   "enabled": zod.boolean().nullish(),
   "webrtc_url": zod.string().nullish(),
   "notes": zod.string().nullish(),
-  "ip_address": zod.string().nullish()
+  "ip_address": zod.string().nullish(),
+  "logo_check_enabled": zod.boolean().nullish(),
+  "logo_region": zod.union([zod.object({
+  "x": zod.number().min(updateDeviceBodyLogoRegionOneXMin).max(updateDeviceBodyLogoRegionOneXMax),
+  "y": zod.number().min(updateDeviceBodyLogoRegionOneYMin).max(updateDeviceBodyLogoRegionOneYMax),
+  "w": zod.number().gt(updateDeviceBodyLogoRegionOneWExclusiveMin).max(updateDeviceBodyLogoRegionOneWMax),
+  "h": zod.number().gt(updateDeviceBodyLogoRegionOneHExclusiveMin).max(updateDeviceBodyLogoRegionOneHMax)
+}),zod.null()]).optional(),
+  "logo_match_threshold": zod.number().nullish()
 })
+
+export const updateDeviceResponseLogoRegionOneXMin = 0;
+export const updateDeviceResponseLogoRegionOneXMax = 1;
+
+export const updateDeviceResponseLogoRegionOneYMin = 0;
+export const updateDeviceResponseLogoRegionOneYMax = 1;
+
+export const updateDeviceResponseLogoRegionOneWExclusiveMin = 0;
+export const updateDeviceResponseLogoRegionOneWMax = 1;
+
+export const updateDeviceResponseLogoRegionOneHExclusiveMin = 0;
+export const updateDeviceResponseLogoRegionOneHMax = 1;
+
+
 
 export const UpdateDeviceResponse = zod.object({
   "id": zod.number(),
@@ -119,7 +223,16 @@ export const UpdateDeviceResponse = zod.object({
   "remote_protocol": zod.string().nullish(),
   "remote_capable": zod.boolean().optional(),
   "remote_requires_pairing": zod.boolean().optional(),
-  "remote_paired": zod.boolean().optional()
+  "remote_paired": zod.boolean().optional(),
+  "logo_check_enabled": zod.boolean().optional(),
+  "logo_region": zod.union([zod.object({
+  "x": zod.number().min(updateDeviceResponseLogoRegionOneXMin).max(updateDeviceResponseLogoRegionOneXMax),
+  "y": zod.number().min(updateDeviceResponseLogoRegionOneYMin).max(updateDeviceResponseLogoRegionOneYMax),
+  "w": zod.number().gt(updateDeviceResponseLogoRegionOneWExclusiveMin).max(updateDeviceResponseLogoRegionOneWMax),
+  "h": zod.number().gt(updateDeviceResponseLogoRegionOneHExclusiveMin).max(updateDeviceResponseLogoRegionOneHMax)
+}),zod.null()]).optional(),
+  "logo_match_threshold": zod.number().optional(),
+  "logo_reference_set": zod.boolean().optional()
 })
 
 
@@ -199,6 +312,49 @@ export const GetRemoteCapabilitiesResponse = zod.object({
   "id": zod.string(),
   "name": zod.string()
 }))
+})
+
+
+/**
+ * @summary Capture a live frame to set/preview a device's logo reference
+ */
+export const CaptureLogoReferenceParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const captureLogoReferenceBodyRegionXMin = 0;
+export const captureLogoReferenceBodyRegionXMax = 1;
+
+export const captureLogoReferenceBodyRegionYMin = 0;
+export const captureLogoReferenceBodyRegionYMax = 1;
+
+export const captureLogoReferenceBodyRegionWExclusiveMin = 0;
+export const captureLogoReferenceBodyRegionWMax = 1;
+
+export const captureLogoReferenceBodyRegionHExclusiveMin = 0;
+export const captureLogoReferenceBodyRegionHMax = 1;
+
+export const captureLogoReferenceBodySaveDefault = false;
+
+export const CaptureLogoReferenceBody = zod.object({
+  "region": zod.object({
+  "x": zod.number().min(captureLogoReferenceBodyRegionXMin).max(captureLogoReferenceBodyRegionXMax),
+  "y": zod.number().min(captureLogoReferenceBodyRegionYMin).max(captureLogoReferenceBodyRegionYMax),
+  "w": zod.number().gt(captureLogoReferenceBodyRegionWExclusiveMin).max(captureLogoReferenceBodyRegionWMax),
+  "h": zod.number().gt(captureLogoReferenceBodyRegionHExclusiveMin).max(captureLogoReferenceBodyRegionHMax)
+}),
+  "save": zod.boolean().default(captureLogoReferenceBodySaveDefault),
+  "threshold": zod.number().nullish()
+})
+
+export const CaptureLogoReferenceResponse = zod.object({
+  "captured": zod.boolean(),
+  "saved": zod.boolean(),
+  "message": zod.string().nullish(),
+  "snapshot": zod.string().nullish(),
+  "crop": zod.string().nullish(),
+  "width": zod.number().nullish(),
+  "height": zod.number().nullish()
 })
 
 

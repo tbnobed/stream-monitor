@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { DeviceInputPlatform } from './deviceInputPlatform';
+import type { LogoRegion } from './logoRegion';
 
 export interface DeviceInput {
   name: string;
@@ -19,4 +20,7 @@ export interface DeviceInput {
   notes?: string | null;
   /** @nullable */
   ip_address?: string | null;
+  logo_check_enabled?: boolean;
+  logo_region?: LogoRegion | null;
+  logo_match_threshold?: number;
 }

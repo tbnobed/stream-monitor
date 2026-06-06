@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from database import SessionLocal
 from models import Device, Setting
 from services.incident_service import handle_status_change
+from services import logo as logo_svc
 import httpx
 import logging
 import numpy as np
@@ -51,6 +52,8 @@ async def probe_whep(
     stream_key: str,
     timeout: float = 8.0,
     content: dict | None = None,
+    logo: dict | None = None,
+    sample_seconds: float | None = None,
 ) -> dict:
     """Open a real WebRTC (WHEP) connection to SRS and confirm media is flowing.
 
@@ -68,14 +71,18 @@ async def probe_whep(
     frame is black), ``freeze_diff`` (0-255 mean abs diff below which consecutive
     frames are identical), ``silence_dbfs`` (dBFS below which audio is silent).
     """
+    # Either kind of frame analysis needs the full sample window so we gather
+    # enough video frames to judge the picture/logo.
+    analyze = bool(content or logo)
     async with probe_semaphore:
         pc = RTCPeerConnection(RTCConfiguration(iceServers=[]))
         frames = {"video": 0, "audio": 0}
-        # Per-frame analysis tallies (only populated when content analysis is on).
+        # Per-frame analysis tallies (only populated when analysis is on).
         stats = {
             "video_judged": 0, "black": 0,
             "freeze_judged": 0, "freeze": 0,
             "audio_judged": 0, "silence": 0,
+            "logo_judged": 0, "logo_match": 0, "logo_score_sum": 0.0,
         }
         prev_luma = {"small": None}
         reader_tasks: list[asyncio.Task] = []
@@ -89,23 +96,33 @@ async def probe_whep(
                     except Exception:
                         break
                     frames[track.kind] += 1
-                    if not content:
+                    if not analyze:
                         continue
                     try:
                         if track.kind == "video":
-                            # Luminance only; subsample heavily for speed.
                             gray = frame.to_ndarray(format="gray")
-                            small = gray[::8, ::8].astype(np.float32)
-                            stats["video_judged"] += 1
-                            if float(small.mean()) < content["black_luma"]:
-                                stats["black"] += 1
-                            prev = prev_luma["small"]
-                            if prev is not None and prev.shape == small.shape:
-                                stats["freeze_judged"] += 1
-                                if float(np.abs(small - prev).mean()) < content["freeze_diff"]:
-                                    stats["freeze"] += 1
-                            prev_luma["small"] = small
-                        elif track.kind == "audio":
+                            if content:
+                                # Luminance only; subsample heavily for speed.
+                                small = gray[::8, ::8].astype(np.float32)
+                                stats["video_judged"] += 1
+                                if float(small.mean()) < content["black_luma"]:
+                                    stats["black"] += 1
+                                prev = prev_luma["small"]
+                                if prev is not None and prev.shape == small.shape:
+                                    stats["freeze_judged"] += 1
+                                    if float(np.abs(small - prev).mean()) < content["freeze_diff"]:
+                                        stats["freeze"] += 1
+                                prev_luma["small"] = small
+                            if logo:
+                                crop = logo_svc.crop_region(gray, logo["region"])
+                                if crop.size:
+                                    small_logo = logo_svc.resize_gray(crop)
+                                    score = logo_svc.ncc(small_logo, logo["template"])
+                                    stats["logo_judged"] += 1
+                                    stats["logo_score_sum"] += score
+                                    if score >= logo["threshold"]:
+                                        stats["logo_match"] += 1
+                        elif track.kind == "audio" and content:
                             arr = frame.to_ndarray().astype(np.float32)
                             rms = float(np.sqrt(np.mean(arr * arr)))
                             dbfs = 20.0 * math.log10(rms / 32768.0 + 1e-9)
@@ -152,14 +169,14 @@ async def probe_whep(
             )
 
             loop = asyncio.get_event_loop()
-            # With content analysis on, sample the full window so we gather enough
-            # video frames to judge the picture (audio alone would otherwise let
-            # the loop break early with ~0 video frames). Otherwise just confirm
-            # media is flowing and bail fast.
-            sample_window = content["sample_seconds"] if content else timeout
+            # With frame analysis on, sample the full window so we gather enough
+            # video frames to judge the picture/logo (audio alone would otherwise
+            # let the loop break early with ~0 video frames). Otherwise just
+            # confirm media is flowing and bail fast.
+            sample_window = (sample_seconds or 5.0) if analyze else timeout
             deadline = loop.time() + sample_window
             while loop.time() < deadline:
-                if not content and (
+                if not analyze and (
                     frames["video"] >= FRAME_THRESHOLD or frames["audio"] >= FRAME_THRESHOLD
                 ):
                     break
@@ -172,8 +189,8 @@ async def probe_whep(
                 frames["video"] >= FRAME_THRESHOLD or frames["audio"] >= FRAME_THRESHOLD
             )
 
-            if content and detail["media_flowing"]:
-                detail["content"] = _content_verdict(stats)
+            if analyze and detail["media_flowing"]:
+                detail["content"] = _content_verdict(stats, bool(content), bool(logo))
             return detail
         except Exception as e:
             detail["error"] = str(e)
@@ -190,25 +207,39 @@ async def probe_whep(
                 pass
 
 
-def _content_verdict(stats: dict) -> dict:
-    """Turn per-frame tallies into a black/freeze/silence verdict.
+def _content_verdict(stats: dict, content_on: bool, logo_on: bool) -> dict:
+    """Turn per-frame tallies into a black/freeze/silence/logo verdict.
 
     Fails OPEN: a verdict is only positive when we judged enough frames and the
     bad fraction is sustained, so sparse/odd samples never flip a loading stream.
     A black frame is also a frozen frame, so black takes priority in the caller.
     """
-    vj, fj, aj = stats["video_judged"], stats["freeze_judged"], stats["audio_judged"]
-    verdict: dict = {
-        "analyzed": True,
-        "video_judged": vj,
-        "audio_judged": aj,
-        "black": vj >= CONTENT_MIN_FRAMES and stats["black"] / vj >= CONTENT_BAD_RATIO,
-        "freeze": fj >= CONTENT_MIN_FRAMES and stats["freeze"] / fj >= CONTENT_BAD_RATIO,
-        "silence": aj >= CONTENT_MIN_FRAMES and stats["silence"] / aj >= CONTENT_BAD_RATIO,
-        # Audio flowing but no decodable video at all over the whole window is a
-        # strong "no picture" signal — surface it (a notch softer than DOWN).
-        "no_video": vj == 0,
-    }
+    verdict: dict = {"analyzed": True}
+    if content_on:
+        vj, fj, aj = stats["video_judged"], stats["freeze_judged"], stats["audio_judged"]
+        verdict.update({
+            "video_judged": vj,
+            "audio_judged": aj,
+            "black": vj >= CONTENT_MIN_FRAMES and stats["black"] / vj >= CONTENT_BAD_RATIO,
+            "freeze": fj >= CONTENT_MIN_FRAMES and stats["freeze"] / fj >= CONTENT_BAD_RATIO,
+            "silence": aj >= CONTENT_MIN_FRAMES and stats["silence"] / aj >= CONTENT_BAD_RATIO,
+            # Audio flowing but no decodable video at all over the whole window is
+            # a strong "no picture" signal — surface it (a notch softer than DOWN).
+            "no_video": vj == 0,
+        })
+    if logo_on:
+        lj = stats["logo_judged"]
+        match_ratio = (stats["logo_match"] / lj) if lj else 0.0
+        verdict.update({
+            "logo_judged": lj,
+            "logo_score": round(stats["logo_score_sum"] / lj, 3) if lj else None,
+            "logo_match_ratio": round(match_ratio, 3),
+            # Present if the logo matched in a meaningful fraction of frames;
+            # missing only when it's sustained-absent (>=85% of frames lacked it),
+            # so a brief occlusion or ad bumper never trips a false alert.
+            "logo_present": lj >= CONTENT_MIN_FRAMES and match_ratio > (1.0 - CONTENT_BAD_RATIO),
+            "logo_missing": lj >= CONTENT_MIN_FRAMES and match_ratio <= (1.0 - CONTENT_BAD_RATIO),
+        })
     return verdict
 
 
@@ -244,15 +275,30 @@ async def check_device(device_id: int):
                 "silence_dbfs": silence_dbfs,
             }
 
+        # Per-device logo-presence check. Only active when enabled AND a reference
+        # template has been captured (no template -> never alerts, fail-safe).
+        logo_cfg = None
+        if device.logo_check_enabled and device.logo_template and device.logo_region:
+            template = logo_svc.decode_template(device.logo_template)
+            if template is not None:
+                logo_cfg = {
+                    "region": device.logo_region,
+                    "template": template,
+                    "threshold": float(device.logo_match_threshold or 0.6),
+                }
+
         try:
             # Hard cap so a single stuck probe can never overrun the worker
-            # interval and stall the whole batch. With content analysis on, the
+            # interval and stall the whole batch. With frame analysis on, the
             # probe samples for the full window, so widen the cap accordingly.
-            probe_timeout = (sample_seconds + 10.0) if content_cfg else 13.0
+            analyze = bool(content_cfg or logo_cfg)
+            probe_timeout = (sample_seconds + 10.0) if analyze else 13.0
             detail = await asyncio.wait_for(
                 probe_whep(
                     whep_base, device.srs_app, device.srs_stream_key,
                     content=content_cfg,
+                    logo=logo_cfg,
+                    sample_seconds=sample_seconds,
                 ),
                 timeout=probe_timeout,
             )
@@ -271,6 +317,8 @@ async def check_device(device_id: int):
                 new_status, reason = "DOWN", "Black screen on device output"
             elif content.get("freeze"):
                 new_status, reason = "DOWN", "Frozen frame on device output"
+            elif content.get("logo_missing"):
+                new_status, reason = "DOWN", "Expected logo not detected"
             elif content.get("no_video"):
                 new_status, reason = "WARNING", "No video frames on device output"
             elif content.get("silence"):

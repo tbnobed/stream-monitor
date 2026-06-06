@@ -29,6 +29,10 @@ async def lifespan(app: FastAPI):
     with engine.begin() as conn:
         conn.execute(text("ALTER TABLE devices ADD COLUMN IF NOT EXISTS ip_address VARCHAR(64)"))
         conn.execute(text("ALTER TABLE devices ADD COLUMN IF NOT EXISTS remote_config JSONB"))
+        conn.execute(text("ALTER TABLE devices ADD COLUMN IF NOT EXISTS logo_check_enabled BOOLEAN NOT NULL DEFAULT false"))
+        conn.execute(text("ALTER TABLE devices ADD COLUMN IF NOT EXISTS logo_region JSONB"))
+        conn.execute(text("ALTER TABLE devices ADD COLUMN IF NOT EXISTS logo_match_threshold DOUBLE PRECISION NOT NULL DEFAULT 0.6"))
+        conn.execute(text("ALTER TABLE devices ADD COLUMN IF NOT EXISTS logo_template TEXT"))
 
     # Seed defaults
     from database import SessionLocal

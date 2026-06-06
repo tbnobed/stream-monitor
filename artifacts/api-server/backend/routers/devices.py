@@ -2,9 +2,13 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from database import get_db
-from models import Device, Incident, CheckResult
-from schemas import DeviceInput, DeviceUpdate, DeviceOut, ItemStats, CheckResultOut
+from models import Device, Incident, CheckResult, Setting
+from schemas import (
+    DeviceInput, DeviceUpdate, DeviceOut, ItemStats, CheckResultOut,
+    LogoReferenceRequest, LogoReferenceResult,
+)
 from services.remote import remote_info
+from services import logo as logo_svc
 from datetime import datetime, timedelta
 
 router = APIRouter(prefix="/devices", tags=["devices"])
@@ -17,6 +21,7 @@ def _serialize(device: Device) -> DeviceOut:
     out.remote_capable = info["capable"]
     out.remote_requires_pairing = info["requires_pairing"]
     out.remote_paired = info["paired"]
+    out.logo_reference_set = bool(device.logo_template)
     return out
 
 
@@ -47,7 +52,10 @@ def update_device(id: int, body: DeviceUpdate, db: Session = Depends(get_db)):
     device = db.query(Device).filter(Device.id == id).first()
     if not device:
         raise HTTPException(status_code=404, detail="Device not found")
+    NON_NULLABLE = {"logo_check_enabled", "logo_match_threshold"}
     for k, v in body.model_dump(exclude_unset=True).items():
+        if k in NON_NULLABLE and v is None:
+            continue
         setattr(device, k, v)
     db.commit()
     db.refresh(device)
@@ -61,6 +69,61 @@ def delete_device(id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Device not found")
     db.delete(device)
     db.commit()
+
+
+@router.post("/{id}/logo/reference", response_model=LogoReferenceResult)
+async def capture_logo_reference(
+    id: int, body: LogoReferenceRequest, db: Session = Depends(get_db)
+):
+    """Grab a live frame from the device's stream for logo-reference setup.
+
+    Always returns a full snapshot plus the cropped region so the operator can
+    align the box. When ``save`` is true, the cropped region is stored as the
+    device's logo template (and logo monitoring is enabled).
+    """
+    device = db.query(Device).filter(Device.id == id).first()
+    if not device:
+        raise HTTPException(status_code=404, detail="Device not found")
+
+    s = db.query(Setting).filter(Setting.key == "srs_whep_base_url").first()
+    whep_base = s.value if s else "http://cdn1.obedtv.live:2023"
+
+    frame = await logo_svc.grab_video_frame(
+        whep_base, device.srs_app, device.srs_stream_key
+    )
+    if frame is None:
+        return LogoReferenceResult(
+            captured=False,
+            message="No video frames received from the stream — is it live?",
+        )
+
+    h, w = frame.shape[:2]
+    region = {"x": body.region.x, "y": body.region.y, "w": body.region.w, "h": body.region.h}
+
+    snapshot_url = logo_svc.encode_jpeg_data_url(frame)
+    gray_crop = logo_svc.crop_region(logo_svc.rgb_to_gray(frame), region)
+    rgb_crop = logo_svc.crop_region(frame, region)
+    crop_url = logo_svc.encode_png_data_url(rgb_crop) if rgb_crop.size else None
+
+    saved = False
+    if body.save and gray_crop.size:
+        device.logo_template = logo_svc.build_template_b64(gray_crop)
+        device.logo_region = region
+        device.logo_check_enabled = True
+        if body.threshold is not None:
+            device.logo_match_threshold = body.threshold
+        db.commit()
+        db.refresh(device)
+        saved = True
+
+    return LogoReferenceResult(
+        captured=True,
+        snapshot=snapshot_url,
+        crop=crop_url,
+        width=w,
+        height=h,
+        saved=saved,
+    )
 
 
 @router.get("/{id}/stats/{window}", response_model=ItemStats)

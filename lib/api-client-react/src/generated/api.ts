@@ -40,6 +40,8 @@ import type {
   ListCheckResultsParams,
   ListIncidentsParams,
   LoginInput,
+  LogoReferenceInput,
+  LogoReferenceResult,
   RemoteActionResult,
   RemoteCapabilities,
   RemoteKeyInput,
@@ -822,6 +824,78 @@ export function useGetRemoteCapabilities<TData = Awaited<ReturnType<typeof getRe
 
 
 
+
+export const getCaptureLogoReferenceUrl = (id: number,) => {
+
+
+
+
+  return `/api/devices/${id}/logo/reference`
+}
+
+/**
+ * @summary Capture a live frame to set/preview a device's logo reference
+ */
+export const captureLogoReference = async (id: number,
+    logoReferenceInput: LogoReferenceInput, options?: RequestInit): Promise<LogoReferenceResult> => {
+
+  return customFetch<LogoReferenceResult>(getCaptureLogoReferenceUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      logoReferenceInput,)
+  }
+);}
+
+
+
+
+export const getCaptureLogoReferenceMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof captureLogoReference>>, TError,{id: number;data: BodyType<LogoReferenceInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof captureLogoReference>>, TError,{id: number;data: BodyType<LogoReferenceInput>}, TContext> => {
+
+const mutationKey = ['captureLogoReference'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof captureLogoReference>>, {id: number;data: BodyType<LogoReferenceInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  captureLogoReference(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CaptureLogoReferenceMutationResult = NonNullable<Awaited<ReturnType<typeof captureLogoReference>>>
+    export type CaptureLogoReferenceMutationBody = BodyType<LogoReferenceInput>
+    export type CaptureLogoReferenceMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Capture a live frame to set/preview a device's logo reference
+ */
+export const useCaptureLogoReference = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof captureLogoReference>>, TError,{id: number;data: BodyType<LogoReferenceInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof captureLogoReference>>,
+        TError,
+        {id: number;data: BodyType<LogoReferenceInput>},
+        TContext
+      > => {
+      return useMutation(getCaptureLogoReferenceMutationOptions(options));
+    }
 
 export const getSendRemoteKeyUrl = (id: number,) => {
 

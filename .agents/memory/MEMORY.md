@@ -1,4 +1,5 @@
 - [SRS WHEP playback quirks](srs-whep-playback.md) — 3 things needed for WebRTC tiles to play: `/whep/` slash in URL, strip Location header, retry transient 502s
+- [Logo-presence detection](logo-presence-detection.md) — live-picture checks reuse the single probe_whep decode loop (no extra stream) and must fail open (≥3 frames, ≥85% sustained)
 - [Device content monitoring](device-content-monitoring.md) — device health = WHEP feed-loads + black/freeze/silence on the DECODED WHEP frames (numpy, fail-open); no RTMP, works in dev+LAN
 - [QR phone-remote token model](qr-phone-remote.md) — `/m/<token>` is public by design: token is the authority (single-device, 90s TTL); keep its router no-auth and the route outside the auth gate
 - [FastAPI trailing-slash 307](fastapi-trailing-slash-307.md) — collection routes must be `@router.post("")` not `("/")` or mutations 307-loop behind nginx; uvicorn --reload hangs on open SSE
