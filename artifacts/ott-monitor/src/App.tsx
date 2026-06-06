@@ -13,6 +13,7 @@ import Incidents from "@/pages/Incidents";
 import Settings from "@/pages/Settings";
 import Users from "@/pages/Users";
 import Login from "@/pages/Login";
+import MobileRemote from "@/pages/MobileRemote";
 import NotFound from "@/pages/not-found";
 
 function statusOf(error: unknown): number | undefined {
@@ -77,20 +78,27 @@ function AuthGate() {
     return <Login />;
   }
 
-  return (
-    <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-      <Router />
-    </WouterRouter>
-  );
+  return <Router />;
 }
 
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <AuthProvider>
-          <AuthGate />
-        </AuthProvider>
+        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+          <Switch>
+            {/* Public phone remote — opened via QR, no login session. */}
+            <Route path="/m/:token">
+              {(params) => <MobileRemote token={params.token} />}
+            </Route>
+            {/* Everything else requires authentication. */}
+            <Route>
+              <AuthProvider>
+                <AuthGate />
+              </AuthProvider>
+            </Route>
+          </Switch>
+        </WouterRouter>
         <Toaster />
       </TooltipProvider>
     </QueryClientProvider>

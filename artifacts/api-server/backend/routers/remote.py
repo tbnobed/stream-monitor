@@ -19,8 +19,9 @@ from schemas import (
     RemoteCapabilitiesOut,
     RemoteActionResult,
     RemotePairBeginOut,
+    MobileTokenOut,
 )
-from services.remote import get_driver, RemoteError
+from services.remote import get_driver, RemoteError, mobile_tokens
 
 router = APIRouter(prefix="/devices/{id}/remote", tags=["remote"])
 logger = logging.getLogger(__name__)
@@ -145,3 +146,24 @@ async def remote_pair_finish(id: int, body: RemotePairFinishInput, db: Session =
             paired=driver.is_paired(), requires_pairing=driver.requires_pairing,
             detail="Paired, but could not verify connection.",
         )
+
+
+@router.post("/mobile-token", response_model=MobileTokenOut)
+async def create_mobile_token(id: int, db: Session = Depends(get_db)):
+    """Mint a short-lived, single-device token for the QR phone remote.
+
+    The desktop modal encodes this in a QR code, keeps it alive via heartbeat,
+    and revokes it when the window closes.
+    """
+    # Validate the device exists and supports native remote control.
+    _get_driver_or_404(id, db)
+    token, ttl = mobile_tokens.create(id)
+    return MobileTokenOut(token=token, ttl_seconds=ttl)
+
+
+@router.post("/mobile-token/{token}/heartbeat", response_model=RemoteActionResult)
+async def heartbeat_mobile_token(id: int, token: str):
+    """Extend a mobile token's TTL. Driven by the desktop modal."""
+    if not mobile_tokens.touch(token, id):
+        raise HTTPException(status_code=404, detail="Token expired or not found")
+    return RemoteActionResult(ok=True, detail="extended")

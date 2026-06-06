@@ -206,6 +206,24 @@ class RemotePairBeginOut(BaseModel):
     message: str
 
 
+class MobileTokenOut(BaseModel):
+    token: str
+    ttl_seconds: int
+
+
+class MobileRemoteSession(BaseModel):
+    device_id: int
+    device_name: str
+    platform: Optional[str] = None
+    protocol: Optional[str] = None
+    capable: bool = False
+    reachable: bool = False
+    paired: bool = False
+    requires_pairing: bool = False
+    keys: list[str] = []
+    detail: Optional[str] = None
+
+
 class UserOut(BaseModel):
     id: int
     username: str

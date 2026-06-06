@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { QRCodeSVG } from 'qrcode.react';
 import {
   useGetRemoteStatus,
   useGetRemoteCapabilities,
@@ -15,9 +16,15 @@ import {
   ChevronUp, ChevronDown, ChevronLeft, ChevronRight,
   CornerUpLeft, Home, Menu, Play, Rewind, FastForward,
   Volume2, Volume1, VolumeX, Power, RefreshCw, Loader2,
-  Wifi, WifiOff, Link2,
+  Wifi, WifiOff, Link2, Smartphone,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import {
+  createMobileToken,
+  heartbeatMobileToken,
+  revokeMobileToken,
+  buildMobileRemoteUrl,
+} from '@/lib/mobile-remote';
 
 interface RemoteControlProps {
   deviceId: number;
@@ -29,6 +36,72 @@ export function RemoteControl({ deviceId }: RemoteControlProps) {
   const [pin, setPin] = useState('');
   const [pairStarted, setPairStarted] = useState(false);
   const [pairNeedsPin, setPairNeedsPin] = useState(false);
+
+  // --- QR phone remote -----------------------------------------------------
+  const [showQr, setShowQr] = useState(false);
+  const [mobileToken, setMobileToken] = useState<string | null>(null);
+  const [tokenError, setTokenError] = useState<string | null>(null);
+  // Ref mirrors the live token so the unmount/pagehide cleanup always revokes
+  // the latest one without re-binding the effect.
+  const tokenRef = useRef<string | null>(null);
+
+  // Mint a token when the QR panel opens.
+  useEffect(() => {
+    if (!showQr) return;
+    let cancelled = false;
+    setTokenError(null);
+    createMobileToken(deviceId)
+      .then((res) => {
+        // If the panel/modal closed before the token arrived, revoke it now so
+        // it doesn't linger (until TTL) as an orphaned, still-valid link.
+        if (cancelled) {
+          revokeMobileToken(res.token);
+          return;
+        }
+        tokenRef.current = res.token;
+        setMobileToken(res.token);
+      })
+      .catch((e: any) => {
+        if (!cancelled) setTokenError(e?.detail || 'Could not create a phone link.');
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [showQr, deviceId]);
+
+  // Keep the token alive while the modal/panel is open.
+  useEffect(() => {
+    if (!mobileToken) return;
+    const id = window.setInterval(() => {
+      heartbeatMobileToken(deviceId, mobileToken).catch(() => {});
+    }, 30000);
+    return () => window.clearInterval(id);
+  }, [mobileToken, deviceId]);
+
+  // Revoke the token when the device window closes (modal unmount) or the
+  // browser tab is hidden/closed.
+  useEffect(() => {
+    const onHide = () => {
+      if (tokenRef.current) revokeMobileToken(tokenRef.current);
+    };
+    window.addEventListener('pagehide', onHide);
+    return () => {
+      window.removeEventListener('pagehide', onHide);
+      if (tokenRef.current) {
+        revokeMobileToken(tokenRef.current);
+        tokenRef.current = null;
+      }
+    };
+  }, []);
+
+  const closeQr = () => {
+    if (tokenRef.current) {
+      revokeMobileToken(tokenRef.current);
+      tokenRef.current = null;
+    }
+    setMobileToken(null);
+    setShowQr(false);
+  };
 
   const {
     data: status,
@@ -257,6 +330,40 @@ export function RemoteControl({ deviceId }: RemoteControlProps) {
   return (
     <div className="space-y-4">
       {StatusHeader}
+
+      {/* QR phone remote */}
+      <div className="space-y-2">
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full gap-2"
+          onClick={() => (showQr ? closeQr() : setShowQr(true))}
+        >
+          <Smartphone className="h-4 w-4" />
+          {showQr ? 'Hide phone remote' : 'Control from phone'}
+        </Button>
+        {showQr && (
+          <div className="rounded-md border p-3 text-center">
+            {tokenError ? (
+              <div className="py-4 text-xs text-status-down">{tokenError}</div>
+            ) : !mobileToken ? (
+              <div className="flex items-center justify-center py-8 text-muted-foreground">
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating link…
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <div className="mx-auto inline-block rounded-md bg-white p-3">
+                  <QRCodeSVG value={buildMobileRemoteUrl(mobileToken)} size={176} />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Scan with your phone camera to open a touch remote for this device.
+                  The link stops working when you close this window.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* D-pad */}
       <div className="flex flex-col items-center gap-2">

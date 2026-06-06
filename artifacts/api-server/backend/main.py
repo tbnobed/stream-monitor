@@ -7,7 +7,7 @@ from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 from database import Base, engine
-from routers import devices, hls_streams, check_results, incidents, settings, dashboard, proxy, sse, guacamole_sessions, remote, auth, users
+from routers import devices, hls_streams, check_results, incidents, settings, dashboard, proxy, sse, guacamole_sessions, remote, auth, users, mobile_remote
 from auth import get_current_user
 from config import settings as app_settings
 from workers.device_worker import device_worker_loop
@@ -141,6 +141,8 @@ app.include_router(proxy.router, dependencies=auth_required)
 app.include_router(sse.router, dependencies=auth_required)
 app.include_router(guacamole_sessions.router, dependencies=auth_required)
 app.include_router(remote.router, dependencies=auth_required)
+# Public, token-scoped phone remote (authority is the QR token itself, not a session).
+app.include_router(mobile_remote.router)
 
 
 @app.get("/healthz")
