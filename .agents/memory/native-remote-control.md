@@ -27,3 +27,13 @@ from appearing. **Why:** an operator reported the remote taking ~4 min to show u
 though pairing/stream were fine. **How to apply:** never put device I/O (connect, scan,
 list_apps) in `status`/`capabilities`; keep it to the actual key/launch actions. Apple TV
 warm-connection reuse only helps the action path, not render.
+
+## Pairing-based drivers must reuse a warm connection
+Apple TV (pyatv Companion) and Chromecast/Google TV (androidtvremote2) both establish
+an expensive session per action — a Companion handshake / TLS handshake. Reconnecting on
+every key press is the latency culprit (seconds per press). Both libraries are designed to
+hold a long-lived connection. **Pattern:** cache the live connection in a module-level dict
+keyed by device.id, guard with a per-device asyncio.Lock, keep it warm with an idle reaper
+(`loop.call_later` -> coroutine that re-acquires the lock + rechecks last_used before
+closing), reconnect-once on a failed op, prime it from `status()`, and drop it on re-pair.
+Roku (ECP, plain HTTP) and Fire TV (ADB) do NOT need this.
