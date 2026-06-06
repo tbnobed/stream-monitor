@@ -404,6 +404,7 @@ function LogoMonitorSection({
   const captureRef = useCaptureLogoReference();
   const [snapshot, setSnapshot] = useState<string | null>(null);
   const [crop, setCrop] = useState<string | null>(null);
+  const [matchScore, setMatchScore] = useState<number | null>(null);
 
   const enabled = form.watch('logo_check_enabled');
   const rx = form.watch('logo_region_x');
@@ -435,6 +436,7 @@ function LogoMonitorSection({
           }
           setSnapshot(res.snapshot || null);
           setCrop(res.crop || null);
+          setMatchScore(res.match_score ?? null);
           if (save) {
             form.setValue('logo_check_enabled', true, { shouldDirty: true });
             toast({ title: 'Logo reference saved', description: 'This frame is now the expected logo.' });
@@ -556,10 +558,33 @@ function LogoMonitorSection({
             </div>
           )}
 
+          {snapshot && matchScore !== null && (() => {
+            const threshold = Number(form.getValues('logo_match_threshold')) || 0;
+            const ok = matchScore >= threshold;
+            return (
+              <div
+                className={`rounded border px-3 py-2 text-xs ${
+                  ok
+                    ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-400'
+                    : 'border-amber-500/40 bg-amber-500/10 text-amber-400'
+                }`}
+              >
+                <div className="font-medium">
+                  Match score vs saved reference: {matchScore.toFixed(2)} (threshold {threshold.toFixed(2)})
+                </div>
+                <div className="mt-0.5 opacity-90">
+                  {ok
+                    ? 'This region matches the saved logo comfortably.'
+                    : 'Below threshold — tighten the box around just the logo (less background) and re-preview until the score sits well above your threshold, then re-capture.'}
+                </div>
+              </div>
+            );
+          })()}
+
           {!snapshot && deviceId && (
             <div className="flex items-center gap-1 text-xs text-muted-foreground">
               <CheckCircle2 className="w-3.5 h-3.5" />
-              Use the defaults for a top-right logo, or preview and fine-tune the box before saving.
+              Draw a tight box around just the logo (avoid surrounding picture), then preview. After a reference is saved, preview shows a live match score so you can set the threshold below it.
             </div>
           )}
         </div>

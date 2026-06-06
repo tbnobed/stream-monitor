@@ -73,6 +73,10 @@ class LogoReferenceResult(BaseModel):
     width: Optional[int] = None
     height: Optional[int] = None
     saved: bool = False
+    # Live NCC of the current region crop vs the already-saved reference template
+    # (-1..1), so the operator can see how strongly this region matches before
+    # trusting the threshold. None when no reference is saved yet.
+    match_score: Optional[float] = None
 
 
 class HlsStreamBase(BaseModel):

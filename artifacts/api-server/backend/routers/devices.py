@@ -105,6 +105,18 @@ async def capture_logo_reference(
     rgb_crop = logo_svc.crop_region(frame, region)
     crop_url = logo_svc.encode_png_data_url(rgb_crop) if rgb_crop.size else None
 
+    # Score this region against the already-saved reference (if any) BEFORE we
+    # overwrite it, so the operator gets live feedback on how strongly the
+    # current box matches — the missing signal that made tuning feel "flimsy".
+    match_score = None
+    existing_tmpl = (
+        logo_svc.decode_template(device.logo_template) if device.logo_template else None
+    )
+    if existing_tmpl is not None and gray_crop.size:
+        match_score = round(
+            logo_svc.ncc(logo_svc.resize_gray(gray_crop), existing_tmpl), 3
+        )
+
     saved = False
     if body.save and gray_crop.size:
         device.logo_template = logo_svc.build_template_b64(gray_crop)
@@ -123,6 +135,7 @@ async def capture_logo_reference(
         width=w,
         height=h,
         saved=saved,
+        match_score=match_score,
     )
 
 

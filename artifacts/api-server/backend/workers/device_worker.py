@@ -32,6 +32,14 @@ CONTENT_MIN_FRAMES = 3
 # Fraction of judged frames that must be bad before we call it a sustained problem.
 CONTENT_BAD_RATIO = 0.85
 
+# Minimum video RTP packets that must have arrived before a zero decoded-frame
+# count is treated as a real "no picture" signal. aiortc's software H264 decoder
+# can fail to produce frames for a stream the browser plays fine (e.g. a keyframe
+# that lands outside the short, contended sample window), so zero decoded frames
+# alone is NOT proof of a dead video track — only zero *RTP* is. This guards
+# no_video against false WARNINGs on a perfectly healthy stream.
+MIN_VIDEO_RTP_PACKETS = 10
+
 # Freeze is judged over time, not frame-to-frame. Comparing immediately-consecutive
 # frames at full frame rate makes low-motion live content (a locked-off camera on a
 # speaker) read as "frozen" because per-frame change is tiny. We instead compare each
@@ -203,8 +211,34 @@ async def probe_whep(
                 frames["video"] >= FRAME_THRESHOLD or frames["audio"] >= FRAME_THRESHOLD
             )
 
+            # How much video RTP actually arrived (decoded or not). aiortc's
+            # software H264 decoder can fail to produce frames for a stream the
+            # browser plays fine (a keyframe landing outside the short, contended
+            # sample window), so a decoded-frame count of 0 does NOT mean "no
+            # picture". Reading the receiver's RTP stats lets us tell "no video
+            # being sent" (RTP absent) from "video sent but our probe couldn't
+            # decode it in time" (RTP present) so no_video never false-alarms.
+            # video_rtp stays None when we couldn't read stats at all — that's
+            # "unknown", NOT "zero RTP", so no_video must fail open in that case
+            # rather than crying wolf on a stats hiccup.
+            video_rtp: int | None = None
+            try:
+                report = await pc.getStats()
+                video_rtp = 0
+                for st in report.values():
+                    if (
+                        getattr(st, "type", "") == "inbound-rtp"
+                        and getattr(st, "kind", "") == "video"
+                    ):
+                        video_rtp = max(video_rtp, int(getattr(st, "packetsReceived", 0) or 0))
+            except Exception:
+                video_rtp = None
+            detail["video_rtp_packets"] = video_rtp
+
             if analyze and detail["media_flowing"]:
-                detail["content"] = _content_verdict(stats, bool(content), bool(logo))
+                detail["content"] = _content_verdict(
+                    stats, bool(content), bool(logo), video_rtp
+                )
             return detail
         except Exception as e:
             detail["error"] = str(e)
@@ -221,7 +255,9 @@ async def probe_whep(
                 pass
 
 
-def _content_verdict(stats: dict, content_on: bool, logo_on: bool) -> dict:
+def _content_verdict(
+    stats: dict, content_on: bool, logo_on: bool, video_rtp_packets: int | None = None
+) -> dict:
     """Turn per-frame tallies into a black/freeze/silence/logo verdict.
 
     Fails OPEN: a verdict is only positive when we judged enough frames and the
@@ -237,9 +273,23 @@ def _content_verdict(stats: dict, content_on: bool, logo_on: bool) -> dict:
             "black": vj >= CONTENT_MIN_FRAMES and stats["black"] / vj >= CONTENT_BAD_RATIO,
             "freeze": fj >= CONTENT_MIN_FRAMES and stats["freeze"] / fj >= CONTENT_BAD_RATIO,
             "silence": aj >= CONTENT_MIN_FRAMES and stats["silence"] / aj >= CONTENT_BAD_RATIO,
-            # Audio flowing but no decodable video at all over the whole window is
-            # a strong "no picture" signal — surface it (a notch softer than DOWN).
-            "no_video": vj == 0,
+            # Audio flowing but no video being SENT (RTP absent) is a real "no
+            # picture" signal — surface it (a notch softer than DOWN). Zero
+            # *decoded* frames while RTP is still arriving means our software
+            # probe just couldn't decode in time (the operator's player is
+            # fine), so we fail open instead of crying wolf. video_rtp_packets
+            # is None when stats couldn't be read at all — also fail open then.
+            "no_video": (
+                vj == 0
+                and video_rtp_packets is not None
+                and video_rtp_packets < MIN_VIDEO_RTP_PACKETS
+            ),
+            # Diagnostic: video was being sent but our probe couldn't decode it
+            # (or we couldn't confirm RTP, so we suppress no_video to be safe).
+            "video_undecoded": vj == 0 and (
+                video_rtp_packets is None
+                or video_rtp_packets >= MIN_VIDEO_RTP_PACKETS
+            ),
         })
     if logo_on:
         lj = stats["logo_judged"]

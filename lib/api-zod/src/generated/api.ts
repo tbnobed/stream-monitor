@@ -354,7 +354,8 @@ export const CaptureLogoReferenceResponse = zod.object({
   "snapshot": zod.string().nullish(),
   "crop": zod.string().nullish(),
   "width": zod.number().nullish(),
-  "height": zod.number().nullish()
+  "height": zod.number().nullish(),
+  "match_score": zod.number().nullish()
 })
 
 

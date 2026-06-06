@@ -206,6 +206,8 @@ export interface LogoReferenceResult {
   width?: number | null;
   /** @nullable */
   height?: number | null;
+  /** @nullable */
+  match_score?: number | null;
 }
 
 export type HlsStreamCurrentStatus = typeof HlsStreamCurrentStatus[keyof typeof HlsStreamCurrentStatus];

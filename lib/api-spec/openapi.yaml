@@ -1109,6 +1109,8 @@ components:
           type: ["integer", "null"]
         height:
           type: ["integer", "null"]
+        match_score:
+          type: ["number", "null"]
 
     HlsStream:
       type: object

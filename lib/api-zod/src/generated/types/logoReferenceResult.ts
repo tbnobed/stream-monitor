@@ -19,4 +19,6 @@ export interface LogoReferenceResult {
   width?: number | null;
   /** @nullable */
   height?: number | null;
+  /** @nullable */
+  match_score?: number | null;
 }
