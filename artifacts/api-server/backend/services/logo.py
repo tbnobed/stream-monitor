@@ -71,11 +71,41 @@ def ncc(a: np.ndarray, b: np.ndarray) -> float:
     return float((a * b).sum() / (na * nb))
 
 
+def gradient_magnitude(gray: np.ndarray) -> np.ndarray:
+    """Sobel gradient magnitude of a grayscale array (float32, same shape).
+
+    We match on EDGE STRUCTURE rather than raw brightness because most channel
+    bugs (e.g. TBN) are *semi-transparent watermarks*: their intensity is
+    alpha-blended with whatever video is behind them, so a logo that is crisp
+    over a dark scene becomes washed-out and low-contrast over a bright/busy one
+    — which collapsed the old intensity-NCC score even though the logo was
+    clearly present. The letter *edges* survive that blending far better, so
+    correlating gradients gives a stable "present/absent" signal across scenes.
+    """
+    g = gray.astype(np.float32)
+    gp = np.pad(g, 1, mode="edge")
+    gx = (
+        (gp[:-2, 2:] + 2.0 * gp[1:-1, 2:] + gp[2:, 2:])
+        - (gp[:-2, :-2] + 2.0 * gp[1:-1, :-2] + gp[2:, :-2])
+    )
+    gy = (
+        (gp[2:, :-2] + 2.0 * gp[2:, 1:-1] + gp[2:, 2:])
+        - (gp[:-2, :-2] + 2.0 * gp[:-2, 1:-1] + gp[:-2, 2:])
+    )
+    return np.sqrt(gx * gx + gy * gy)
+
+
 def match_score(
     template: np.ndarray, frame_gray: np.ndarray, region: dict | tuple, search: float = 0.25
 ) -> float:
     """Best NCC of the template against the region, scanning small positional
     offsets so a slightly-misaligned box still locks onto the logo.
+
+    Matching is done on Sobel **gradient magnitude** (see ``gradient_magnitude``)
+    rather than raw intensity, so a semi-transparent watermark still correlates
+    strongly even when the background behind it changes the logo's brightness.
+    The stored template stays raw grayscale; edges are computed on the fly here,
+    so existing saved references keep working without re-capture.
 
     ``search`` is the max shift tried in each direction as a fraction of the
     region's own width/height. This gives drift tolerance: the operator's box
@@ -87,13 +117,14 @@ def match_score(
         x, y, w, h = region["x"], region["y"], region["w"], region["h"]
     else:
         x, y, w, h = region
+    t_edge = gradient_magnitude(template)
     best = -1.0
     steps = (-search, 0.0, search)
     for dy in steps:
         for dx in steps:
             crop = crop_region(frame_gray, {"x": x + dx * w, "y": y + dy * h, "w": w, "h": h})
             if crop.size:
-                s = ncc(template, resize_gray(crop))
+                s = ncc(t_edge, gradient_magnitude(resize_gray(crop)))
                 if s > best:
                     best = s
     return best
