@@ -98,13 +98,14 @@ Every 30s (configurable): manifest fetch → rendition audit → media-sequence 
 Two layers, every 15s (configurable):
 
 1. **Feed loads?** A real WHEP (WebRTC) probe opens the device's stream and confirms decoded media frames actually arrive (`probe_whep`). SRS returns 201 even for a non-existent stream, so frames flowing is the only reliable "the capture is up" signal.
-2. **Program alive?** When the feed loads, `analyze_device_content` pulls a few seconds of the device's **RTMP ingest** and runs ffmpeg `blackdetect`/`freezedetect` (video) + `silencedetect` (audio) on the *actual picture/audio*. A black or frozen screen → **DOWN**; sustained silence → **WARNING**. This catches a device stuck on a black/frozen/silent program that still delivers WebRTC frames (which would otherwise read HEALTHY).
+2. **Program alive?** When the feed loads, the **same WHEP probe** also inspects the *already-decoded* WebRTC frames (no extra connection, no RTMP) with numpy: per-frame mean luminance for **black**, mean abs diff between consecutive frames for **freeze**, and audio RMS→dBFS for **silence**. A black or frozen screen → **DOWN**; audio flowing but no decodable video → **WARNING** (`No video frames`); sustained silence → **WARNING**. This catches a device stuck on a black/frozen/silent program that still delivers WebRTC frames (which would otherwise read HEALTHY). Because it analyses the exact picture the operator sees over WebRTC, it works **everywhere** (Replit dev sandbox *and* LAN) — no RTMP reachability required.
 
-Content analysis **fails open**: any ffmpeg/pull error (e.g. unreachable RTMP) leaves the verdict untouched, so it never causes a false DOWN. It is gated by `device_content_check_enabled` and tuned by the existing blackdetect/freezedetect/silencedetect thresholds plus `device_content_sample_seconds` (all in Settings). **The backend must be able to reach the RTMP ingest (port 1935) for this layer to do anything** — it works on the LAN deploy but is blocked in the Replit dev sandbox.
+Content analysis **fails open**: a verdict is only positive when ≥3 frames were judged and the bad fraction is sustained (≥85%), so sparse/odd samples never flip a loading stream; any frame-decode error is swallowed and never causes a false DOWN. It is gated by `device_content_check_enabled` and tuned via `device_content_sample_seconds` plus the existing threshold keys, reinterpreted for per-frame analysis: `blackdetect_threshold` (×255 → black luma cutoff), `freezedetect_noise` (×255 → freeze diff cutoff), `silencedetect_noise` (dBFS, e.g. `-50dB`). The probe samples the full window when content analysis is on so it gathers enough video frames to judge (audio alone would otherwise break the loop early with ~0 video frames). The old `*_duration` and `rtmp_ingest_base_url` settings are now unused.
 
 ## Dependencies
 
-- `ffmpeg` and `ffprobe` must be available on PATH for device workers and HLS deep validation
+- `ffmpeg` and `ffprobe` must be available on PATH for HLS deep validation (device content analysis no longer needs ffmpeg — it analyses decoded WebRTC frames with numpy)
+- `numpy` — used by the device worker to analyse decoded WHEP video/audio frames (black/freeze/silence)
 - PostgreSQL (auto-provisioned by Replit)
 
 ## Self-hosted Docker deployment (Ubuntu LAN)

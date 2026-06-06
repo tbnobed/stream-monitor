@@ -1,4 +1,5 @@
 import asyncio
+import math
 from datetime import datetime
 from sqlalchemy.orm import Session
 from database import SessionLocal
@@ -6,6 +7,7 @@ from models import Device, Setting
 from services.incident_service import handle_status_change
 import httpx
 import logging
+import numpy as np
 
 from aiortc import RTCPeerConnection, RTCSessionDescription, RTCConfiguration
 
@@ -19,11 +21,15 @@ for _noisy in ("aioice.ice", "aiortc.codecs.h264", "aiortc.rtcrtpreceiver"):
 # Limit concurrent WHEP media probes to avoid resource exhaustion.
 probe_semaphore = asyncio.Semaphore(4)
 
-# Limit concurrent ffmpeg content-analysis processes (separate from WHEP probes).
-ffmpeg_semaphore = asyncio.Semaphore(4)
-
 # A stream is considered loading once this many decoded media frames arrive.
 FRAME_THRESHOLD = 3
+
+# Need at least this many judged frames before trusting a black/freeze/silence
+# verdict — too few samples is noise, so we fail open instead.
+CONTENT_MIN_FRAMES = 3
+
+# Fraction of judged frames that must be bad before we call it a sustained problem.
+CONTENT_BAD_RATIO = 0.85
 
 
 def get_setting(db: Session, key: str, default: str) -> str:
@@ -39,16 +45,39 @@ def get_setting_float(db: Session, key: str, default: float) -> float:
         return default
 
 
-async def probe_whep(whep_base: str, app: str, stream_key: str, timeout: float = 8.0) -> dict:
+async def probe_whep(
+    whep_base: str,
+    app: str,
+    stream_key: str,
+    timeout: float = 8.0,
+    content: dict | None = None,
+) -> dict:
     """Open a real WebRTC (WHEP) connection to SRS and confirm media is flowing.
 
     SRS returns 201 for the signaling handshake even when a stream does not
     exist, so the only reliable health signal is whether decoded media frames
     actually arrive. Returns a detail dict with the outcome.
+
+    When ``content`` is provided, the *already-decoded* WHEP frames are also
+    inspected for a dead program — black/frozen video or silent audio — so we
+    catch a device stuck on a black or frozen screen that still streams frames.
+    This analyses the exact picture the operator sees over WebRTC, needs no RTMP
+    reachability, and therefore works in any environment (dev sandbox + LAN).
+
+    ``content`` keys: ``sample_seconds``, ``black_luma`` (0-255 mean below which a
+    frame is black), ``freeze_diff`` (0-255 mean abs diff below which consecutive
+    frames are identical), ``silence_dbfs`` (dBFS below which audio is silent).
     """
     async with probe_semaphore:
         pc = RTCPeerConnection(RTCConfiguration(iceServers=[]))
         frames = {"video": 0, "audio": 0}
+        # Per-frame analysis tallies (only populated when content analysis is on).
+        stats = {
+            "video_judged": 0, "black": 0,
+            "freeze_judged": 0, "freeze": 0,
+            "audio_judged": 0, "silence": 0,
+        }
+        prev_luma = {"small": None}
         reader_tasks: list[asyncio.Task] = []
 
         @pc.on("track")
@@ -56,10 +85,36 @@ async def probe_whep(whep_base: str, app: str, stream_key: str, timeout: float =
             async def reader():
                 while True:
                     try:
-                        await track.recv()
-                        frames[track.kind] += 1
+                        frame = await track.recv()
                     except Exception:
                         break
+                    frames[track.kind] += 1
+                    if not content:
+                        continue
+                    try:
+                        if track.kind == "video":
+                            # Luminance only; subsample heavily for speed.
+                            gray = frame.to_ndarray(format="gray")
+                            small = gray[::8, ::8].astype(np.float32)
+                            stats["video_judged"] += 1
+                            if float(small.mean()) < content["black_luma"]:
+                                stats["black"] += 1
+                            prev = prev_luma["small"]
+                            if prev is not None and prev.shape == small.shape:
+                                stats["freeze_judged"] += 1
+                                if float(np.abs(small - prev).mean()) < content["freeze_diff"]:
+                                    stats["freeze"] += 1
+                            prev_luma["small"] = small
+                        elif track.kind == "audio":
+                            arr = frame.to_ndarray().astype(np.float32)
+                            rms = float(np.sqrt(np.mean(arr * arr)))
+                            dbfs = 20.0 * math.log10(rms / 32768.0 + 1e-9)
+                            stats["audio_judged"] += 1
+                            if dbfs < content["silence_dbfs"]:
+                                stats["silence"] += 1
+                    except Exception:
+                        # Frame analysis must never break the media probe.
+                        pass
             reader_tasks.append(asyncio.ensure_future(reader()))
 
         detail: dict = {"whep_url": f"{whep_base}/rtc/v1/whep/?app={app}&stream={stream_key}"}
@@ -97,11 +152,18 @@ async def probe_whep(whep_base: str, app: str, stream_key: str, timeout: float =
             )
 
             loop = asyncio.get_event_loop()
-            deadline = loop.time() + timeout
+            # With content analysis on, sample the full window so we gather enough
+            # video frames to judge the picture (audio alone would otherwise let
+            # the loop break early with ~0 video frames). Otherwise just confirm
+            # media is flowing and bail fast.
+            sample_window = content["sample_seconds"] if content else timeout
+            deadline = loop.time() + sample_window
             while loop.time() < deadline:
-                if frames["video"] >= FRAME_THRESHOLD or frames["audio"] >= FRAME_THRESHOLD:
+                if not content and (
+                    frames["video"] >= FRAME_THRESHOLD or frames["audio"] >= FRAME_THRESHOLD
+                ):
                     break
-                await asyncio.sleep(0.25)
+                await asyncio.sleep(0.1)
 
             detail["video_frames"] = frames["video"]
             detail["audio_frames"] = frames["audio"]
@@ -109,6 +171,9 @@ async def probe_whep(whep_base: str, app: str, stream_key: str, timeout: float =
             detail["media_flowing"] = (
                 frames["video"] >= FRAME_THRESHOLD or frames["audio"] >= FRAME_THRESHOLD
             )
+
+            if content and detail["media_flowing"]:
+                detail["content"] = _content_verdict(stats)
             return detail
         except Exception as e:
             detail["error"] = str(e)
@@ -125,75 +190,26 @@ async def probe_whep(whep_base: str, app: str, stream_key: str, timeout: float =
                 pass
 
 
-async def analyze_device_content(
-    rtmp_url: str,
-    sample_seconds: float,
-    black_d: float,
-    black_th: float,
-    freeze_n: float,
-    freeze_d: float,
-    sil_n: str,
-    sil_d: float,
-) -> dict:
-    """Inspect the device's ACTUAL program, not just that the feed loads.
+def _content_verdict(stats: dict) -> dict:
+    """Turn per-frame tallies into a black/freeze/silence verdict.
 
-    WHEP frames flowing only proves the capture pipeline is up — a device stuck
-    on a black screen, a frozen frame, or a silent spinner still delivers frames
-    and would otherwise read HEALTHY. This pulls a few seconds of the device's
-    RTMP ingest and runs ffmpeg blackdetect/freezedetect (video) + silencedetect
-    (audio). Each filter only emits when its duration threshold is exceeded, so a
-    marker means a *sustained* problem.
-
-    Fails OPEN: any tooling/pull error returns analyzed=False and never flips a
-    loading stream to DOWN just because ffmpeg could not read it.
+    Fails OPEN: a verdict is only positive when we judged enough frames and the
+    bad fraction is sustained, so sparse/odd samples never flip a loading stream.
+    A black frame is also a frozen frame, so black takes priority in the caller.
     """
-    vf = f"blackdetect=d={black_d}:pix_th={black_th},freezedetect=n={freeze_n}:d={freeze_d}"
-    af = f"silencedetect=n={sil_n}:d={sil_d}"
-    cmd = [
-        "ffmpeg", "-hide_banner", "-nostats",
-        # Abort fast if the ingest can't be reached / stalls, instead of hanging
-        # until our asyncio kill (keeps the worker loop responsive).
-        "-rw_timeout", "8000000",
-        "-i", rtmp_url,
-        "-t", str(sample_seconds),
-        "-vf", vf,
-        "-af", af,
-        "-f", "null", "-",
-    ]
-    async with ffmpeg_semaphore:
-        try:
-            proc = await asyncio.create_subprocess_exec(
-                *cmd,
-                stdout=asyncio.subprocess.DEVNULL,
-                stderr=asyncio.subprocess.PIPE,
-            )
-        except FileNotFoundError:
-            return {"analyzed": False, "error": "ffmpeg not found"}
-        try:
-            _, stderr = await asyncio.wait_for(
-                proc.communicate(), timeout=sample_seconds + 12
-            )
-        except asyncio.TimeoutError:
-            try:
-                proc.kill()
-                await proc.wait()
-            except Exception:
-                pass
-            return {"analyzed": False, "error": "content analysis timeout"}
-
-        text = stderr.decode(errors="ignore")
-        if "Input #0" not in text:
-            return {
-                "analyzed": False,
-                "error": "could not open device stream",
-                "returncode": proc.returncode,
-            }
-        return {
-            "analyzed": True,
-            "black": "black_start" in text,
-            "freeze": "freeze_start" in text,
-            "silence": "silence_start" in text,
-        }
+    vj, fj, aj = stats["video_judged"], stats["freeze_judged"], stats["audio_judged"]
+    verdict: dict = {
+        "analyzed": True,
+        "video_judged": vj,
+        "audio_judged": aj,
+        "black": vj >= CONTENT_MIN_FRAMES and stats["black"] / vj >= CONTENT_BAD_RATIO,
+        "freeze": fj >= CONTENT_MIN_FRAMES and stats["freeze"] / fj >= CONTENT_BAD_RATIO,
+        "silence": aj >= CONTENT_MIN_FRAMES and stats["silence"] / aj >= CONTENT_BAD_RATIO,
+        # Audio flowing but no decodable video at all over the whole window is a
+        # strong "no picture" signal — surface it (a notch softer than DOWN).
+        "no_video": vj == 0,
+    }
+    return verdict
 
 
 async def check_device(device_id: int):
@@ -206,12 +222,39 @@ async def check_device(device_id: int):
 
         whep_base = get_setting(db, "srs_whep_base_url", "http://cdn1.obedtv.live:2023")
 
+        # Build the content-analysis config up front so the probe can inspect the
+        # decoded WHEP frames for a dead program (black/freeze/silence) in the
+        # same pass it confirms media is flowing. Thresholds reuse the existing
+        # Settings keys, reinterpreted for per-frame analysis (fractions -> 0-255).
+        content_enabled = get_setting(db, "device_content_check_enabled", "true").lower() == "true"
+        content_cfg = None
+        # Clamp to a sane floor: a 0/negative window would skip frame sampling
+        # entirely (media_flowing=False) and falsely mark a healthy stream DOWN.
+        sample_seconds = max(1.0, get_setting_float(db, "device_content_sample_seconds", 5.0))
+        if content_enabled and device.srs_stream_key:
+            sil_raw = get_setting(db, "silencedetect_noise", "-50dB").strip().lower().replace("db", "")
+            try:
+                silence_dbfs = float(sil_raw)
+            except (TypeError, ValueError):
+                silence_dbfs = -50.0
+            content_cfg = {
+                "sample_seconds": sample_seconds,
+                "black_luma": get_setting_float(db, "blackdetect_threshold", 0.10) * 255.0,
+                "freeze_diff": get_setting_float(db, "freezedetect_noise", 0.003) * 255.0,
+                "silence_dbfs": silence_dbfs,
+            }
+
         try:
             # Hard cap so a single stuck probe can never overrun the worker
-            # interval and stall the whole batch.
+            # interval and stall the whole batch. With content analysis on, the
+            # probe samples for the full window, so widen the cap accordingly.
+            probe_timeout = (sample_seconds + 10.0) if content_cfg else 13.0
             detail = await asyncio.wait_for(
-                probe_whep(whep_base, device.srs_app, device.srs_stream_key),
-                timeout=13.0,
+                probe_whep(
+                    whep_base, device.srs_app, device.srs_stream_key,
+                    content=content_cfg,
+                ),
+                timeout=probe_timeout,
             )
         except asyncio.TimeoutError:
             detail = {"media_flowing": False, "error": "probe timeout"}
@@ -219,37 +262,19 @@ async def check_device(device_id: int):
         if detail.get("media_flowing"):
             new_status = "HEALTHY"
             reason = ""
-            # The feed loads — now verify the actual program is alive
-            # (black/freeze/silence), not just that frames arrive.
-            content_enabled = get_setting(db, "device_content_check_enabled", "true").lower() == "true"
-            if content_enabled and device.srs_stream_key:
-                rtmp_base = get_setting(db, "rtmp_ingest_base_url", "rtmp://cdn1.obedtv.live:1935/live")
-                rtmp_url = f"{rtmp_base.rstrip('/')}/{device.srs_stream_key}"
-                sample_seconds = get_setting_float(db, "device_content_sample_seconds", 5.0)
-                try:
-                    content = await asyncio.wait_for(
-                        analyze_device_content(
-                            rtmp_url,
-                            sample_seconds,
-                            get_setting_float(db, "blackdetect_duration", 2.0),
-                            get_setting_float(db, "blackdetect_threshold", 0.10),
-                            get_setting_float(db, "freezedetect_noise", 0.003),
-                            get_setting_float(db, "freezedetect_duration", 2.0),
-                            get_setting(db, "silencedetect_noise", "-50dB"),
-                            get_setting_float(db, "silencedetect_duration", 3.0),
-                        ),
-                        timeout=sample_seconds + 15,
-                    )
-                except asyncio.TimeoutError:
-                    content = {"analyzed": False, "error": "content analysis timeout"}
-                detail["content"] = content
-                # Fail-open: only flip on a positive detection.
-                if content.get("black"):
-                    new_status, reason = "DOWN", "Black screen on device output"
-                elif content.get("freeze"):
-                    new_status, reason = "DOWN", "Frozen frame on device output"
-                elif content.get("silence"):
-                    new_status, reason = "WARNING", "Silent audio on device output"
+            # The feed loads — now check the actual program (analysed inside the
+            # probe from the decoded frames). Fail-open: only flip on a positive
+            # detection; black takes priority over freeze (a black frame is also
+            # a frozen one).
+            content = detail.get("content") or {}
+            if content.get("black"):
+                new_status, reason = "DOWN", "Black screen on device output"
+            elif content.get("freeze"):
+                new_status, reason = "DOWN", "Frozen frame on device output"
+            elif content.get("no_video"):
+                new_status, reason = "WARNING", "No video frames on device output"
+            elif content.get("silence"):
+                new_status, reason = "WARNING", "Silent audio on device output"
         elif detail.get("http_status") not in (200, 201):
             new_status = "DOWN"
             reason = f"WHEP handshake failed (HTTP {detail.get('http_status')})"
