@@ -2,6 +2,7 @@ import asyncio
 import httpx
 import m3u8
 from datetime import datetime
+from urllib.parse import urljoin
 from sqlalchemy.orm import Session
 from database import SessionLocal
 from models import HlsStream, Setting
@@ -41,6 +42,9 @@ async def check_manifest(url: str) -> dict:
             "playlists": [p.uri for p in playlist.playlists],
             "rendition_count": len(playlist.playlists),
             "raw_text": text,
+            # Final URL after following redirects — relative rendition URIs in the
+            # manifest must resolve against this, not the originally requested URL.
+            "final_url": str(resp.url),
         }
     except Exception as e:
         return {"ok": False, "reason": f"Manifest fetch failed: {e}"}
@@ -49,8 +53,7 @@ async def check_manifest(url: str) -> dict:
 async def fetch_variant_playlist(uri: str, base_url: str) -> dict:
     """Fetch a variant playlist and return media sequence + latest segment."""
     if not uri.startswith("http"):
-        base = base_url.rsplit("/", 1)[0]
-        uri = f"{base}/{uri}"
+        uri = urljoin(base_url, uri)
     try:
         async with httpx.AsyncClient(timeout=10, follow_redirects=True) as client:
             resp = await client.get(uri)
@@ -67,7 +70,9 @@ async def fetch_variant_playlist(uri: str, base_url: str) -> dict:
             "media_sequence": media_seq,
             "segment_count": len(segments),
             "latest_segment": latest_segment,
-            "base_uri": uri.rsplit("/", 1)[0],
+            # Full final URL of the variant playlist (after redirects); segment
+            # URIs are resolved relative to this via urljoin.
+            "base_uri": str(resp.url),
         }
     except Exception as e:
         return {"ok": False, "reason": str(e)}
@@ -76,7 +81,7 @@ async def fetch_variant_playlist(uri: str, base_url: str) -> dict:
 async def check_segment(segment_uri: str, base_uri: str) -> dict:
     """Download and validate a segment."""
     if not segment_uri.startswith("http"):
-        segment_uri = f"{base_uri}/{segment_uri}"
+        segment_uri = urljoin(base_uri, segment_uri)
     try:
         async with httpx.AsyncClient(timeout=15, follow_redirects=True) as client:
             resp = await client.get(segment_uri)
@@ -94,7 +99,7 @@ async def ffprobe_segment(segment_uri: str, base_uri: str) -> dict:
     """Run ffprobe on a segment for deep validation."""
     async with ffprobe_semaphore:
         if not segment_uri.startswith("http"):
-            segment_uri = f"{base_uri}/{segment_uri}"
+            segment_uri = urljoin(base_uri, segment_uri)
         cmd = [
             "ffprobe", "-hide_banner", "-v", "quiet",
             "-print_format", "json", "-show_streams",
@@ -162,7 +167,10 @@ async def check_hls_stream(stream_id: int):
 
         # 3. Fetch top variant playlist
         if playlists:
-            variant_result = await fetch_variant_playlist(playlists[0], stream.master_url)
+            # Resolve relative rendition URIs against the manifest's FINAL url
+            # (after redirects), falling back to the configured master url.
+            manifest_base = manifest_result.get("final_url") or stream.master_url
+            variant_result = await fetch_variant_playlist(playlists[0], manifest_base)
             detail["variant"] = variant_result
 
             if not variant_result["ok"]:
@@ -215,6 +223,10 @@ async def check_hls_stream(stream_id: int):
                             key_uri = match.group(1)
                             break
                 if key_uri:
+                    # Key URIs are often relative; resolve against the manifest's
+                    # final url (after redirects) just like rendition/segment URIs.
+                    if not key_uri.startswith("http"):
+                        key_uri = urljoin(manifest_base, key_uri)
                     key_ok = await check_key_server(key_uri)
                     detail["key_server"] = key_ok
                     if not key_ok:
