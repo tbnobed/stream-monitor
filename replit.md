@@ -64,7 +64,8 @@ Entire app (frontend + API) is gated. Unauthenticated API calls return 401; the 
 
 - **Add a device**: `/devices` → "Add Device" (name, platform, SRS stream key). Wall renders from DB.
 - **Add an HLS stream**: `/hls-streams` → "Add Stream" (name + master `.m3u8`). Health checks start automatically.
-- **Configure alerts**: `/settings` → paste Slack/Discord/generic webhook URLs, toggle `alerts_enabled` / `alert_on_warning`.
+- **Configure alerts**: `/settings` → paste Slack/Discord/Teams/generic webhook URLs, toggle `alerts_enabled` / `alert_on_warning`.
+- **Microsoft Teams alerts**: paste a Teams webhook URL into `teams_webhook_url` (`/settings`). Teams will not render arbitrary JSON, so `alert_service.py: _build_teams_payload` sends a Teams-native card and **auto-detects the format from the URL host**: a legacy O365 "Incoming Webhook" connector URL (`*.office.com`) gets a MessageCard; anything else (the current Power Automate "Workflows" trigger, e.g. `*.logic.azure.com`) gets an Adaptive Card envelope. Operators just paste whichever URL Teams gives them. To create one in Teams today: channel → Workflows → "Post to a channel when a webhook request is received" → copy the generated URL.
 - **Email alerts (SendGrid)**: fire on the same incident open/resolve events. Set env `SENDGRID_API_KEY` + verified sender `ALERT_FROM_EMAIL` (optionally `ALERT_FROM_NAME`), then recipients in `/settings` → `alert_email_recipients` (comma-separated). Skipped unless key, sender, and ≥1 recipient are all present. Uses `httpx` against SendGrid v3 (`alert_service.py: _send_email_alert`), no SDK.
 
 ## How detection works

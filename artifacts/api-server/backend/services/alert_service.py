@@ -3,6 +3,7 @@ import json
 import logging
 import os
 from datetime import datetime
+from urllib.parse import urlparse
 
 logger = logging.getLogger(__name__)
 
@@ -78,6 +79,15 @@ async def send_alert(
         }
         urls.append((discord_url, discord_payload))
 
+    teams_url = settings.get("teams_webhook_url", "")
+    if teams_url:
+        urls.append((
+            teams_url,
+            _build_teams_payload(
+                teams_url, event, item_name, item_type, status, reason, incident_id
+            ),
+        ))
+
     generic_url = settings.get("generic_webhook_url", "")
     if generic_url:
         urls.append((generic_url, payload))
@@ -90,6 +100,82 @@ async def send_alert(
                 pass
 
     await _send_email_alert(settings, item_name, item_type, status, reason, incident_id, event)
+
+
+def _build_teams_payload(
+    url: str,
+    event: str,
+    item_name: str,
+    item_type: str,
+    status: str,
+    reason: str,
+    incident_id: int,
+) -> dict:
+    """Build a Microsoft Teams card payload.
+
+    Teams does NOT render arbitrary JSON (so the generic webhook won't work).
+    Two delivery methods exist with different schemas, so we auto-detect from
+    the webhook host and emit the matching one:
+      * Legacy O365 "Incoming Webhook" connectors (``*.office.com``) -> MessageCard.
+      * Current Power Automate "Workflows" trigger (anything else, e.g.
+        ``*.logic.azure.com`` / ``*.azure-apim.net``) -> Adaptive Card envelope.
+    """
+    timestamp = datetime.utcnow().isoformat()
+    title = f"OTT Monitor Alert [{event.upper()}]"
+    summary = f"OTT Monitor: {item_name} \u2014 {status}"
+    facts = [
+        ("Status", status),
+        ("Event", event),
+        ("Reason", reason or "\u2014"),
+        ("Incident", f"#{incident_id}"),
+        ("Time (UTC)", timestamp),
+    ]
+
+    host = (urlparse(url).hostname or "").lower()
+    if host == "office.com" or host.endswith((".office.com", ".office365.com")):
+        theme = "D32F2F" if status == "DOWN" else "ED6C02" if status == "WARNING" else "2E7D32"
+        return {
+            "@type": "MessageCard",
+            "@context": "http://schema.org/extensions",
+            "themeColor": theme,
+            "summary": summary,
+            "title": title,
+            "sections": [{
+                "activityTitle": f"{item_name} ({item_type})",
+                "facts": [{"name": n, "value": v} for n, v in facts],
+                "markdown": True,
+            }],
+        }
+
+    ac_color = "attention" if status == "DOWN" else "warning" if status == "WARNING" else "good"
+    return {
+        "type": "message",
+        "attachments": [{
+            "contentType": "application/vnd.microsoft.card.adaptive",
+            "content": {
+                "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+                "type": "AdaptiveCard",
+                "version": "1.4",
+                "body": [
+                    {
+                        "type": "TextBlock",
+                        "size": "Large",
+                        "weight": "Bolder",
+                        "color": ac_color,
+                        "text": title,
+                        "wrap": True,
+                    },
+                    {
+                        "type": "TextBlock",
+                        "weight": "Bolder",
+                        "text": f"{item_name} ({item_type})",
+                        "wrap": True,
+                    },
+                    {"type": "FactSet", "facts": [{"title": n, "value": v} for n, v in facts]},
+                ],
+            },
+        }],
+    }
 
 
 async def _send_email_alert(

@@ -30,6 +30,7 @@ DEFAULT_SETTINGS = {
     "alert_on_warning": ("false", "Send alerts for WARNING status too"),
     "slack_webhook_url": ("", "Slack incoming webhook URL"),
     "discord_webhook_url": ("", "Discord webhook URL"),
+    "teams_webhook_url": ("", "Microsoft Teams webhook URL (Power Automate Workflows or legacy Incoming Webhook)"),
     "generic_webhook_url": ("", "Generic webhook URL"),
     "alert_email_recipients": ("", "Comma-separated email addresses for SendGrid alerts"),
     "logo_missing_grace_seconds": ("300", "Seconds the channel logo must be continuously missing before alerting (ignores ad breaks; default 300 = 5 min)"),
