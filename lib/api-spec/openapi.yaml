@@ -1111,6 +1111,13 @@ components:
           type: ["integer", "null"]
         match_score:
           type: ["number", "null"]
+        region:
+          oneOf:
+            - $ref: "#/components/schemas/LogoRegion"
+            - type: "null"
+        tightened:
+          type: boolean
+          default: false
 
     HlsStream:
       type: object

@@ -77,6 +77,11 @@ class LogoReferenceResult(BaseModel):
     # (-1..1), so the operator can see how strongly this region matches before
     # trusting the threshold. None when no reference is saved yet.
     match_score: Optional[float] = None
+    # The region actually stored after the server auto-tightened the operator's
+    # drawn box onto the logo (normalized fractions). Present when saved.
+    region: Optional[LogoRegion] = None
+    # True when auto-tighten moved/shrank the operator's box onto the logo.
+    tightened: bool = False
 
 
 class HlsStreamBase(BaseModel):

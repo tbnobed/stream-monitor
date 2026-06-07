@@ -488,7 +488,18 @@ function LogoMonitorSection({
           setMatchScore(res.match_score ?? null);
           if (save) {
             form.setValue('logo_check_enabled', true, { shouldDirty: true });
-            toast({ title: 'Logo reference saved', description: 'This frame is now the expected logo.' });
+            if (res.region) {
+              form.setValue('logo_region_x', Math.round(res.region.x * 100), { shouldDirty: true });
+              form.setValue('logo_region_y', Math.round(res.region.y * 100), { shouldDirty: true });
+              form.setValue('logo_region_w', Math.max(1, Math.round(res.region.w * 100)), { shouldDirty: true });
+              form.setValue('logo_region_h', Math.max(1, Math.round(res.region.h * 100)), { shouldDirty: true });
+            }
+            toast({
+              title: 'Logo reference saved',
+              description: res.tightened
+                ? 'The server auto-tightened your box onto the logo and saved it as the reference.'
+                : 'This frame is now the expected logo.',
+            });
           } else {
             toast({ title: 'Preview captured', description: 'Adjust the region, then save the reference.' });
           }

@@ -208,6 +208,8 @@ export interface LogoReferenceResult {
   height?: number | null;
   /** @nullable */
   match_score?: number | null;
+  region?: LogoRegion | null;
+  tightened?: boolean;
 }
 
 export type HlsStreamCurrentStatus = typeof HlsStreamCurrentStatus[keyof typeof HlsStreamCurrentStatus];

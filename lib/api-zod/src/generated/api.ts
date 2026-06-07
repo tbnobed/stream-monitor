@@ -347,6 +347,20 @@ export const CaptureLogoReferenceBody = zod.object({
   "threshold": zod.number().nullish()
 })
 
+export const captureLogoReferenceResponseRegionOneXMin = 0;
+export const captureLogoReferenceResponseRegionOneXMax = 1;
+
+export const captureLogoReferenceResponseRegionOneYMin = 0;
+export const captureLogoReferenceResponseRegionOneYMax = 1;
+
+export const captureLogoReferenceResponseRegionOneWExclusiveMin = 0;
+export const captureLogoReferenceResponseRegionOneWMax = 1;
+
+export const captureLogoReferenceResponseRegionOneHExclusiveMin = 0;
+export const captureLogoReferenceResponseRegionOneHMax = 1;
+
+export const captureLogoReferenceResponseTightenedDefault = false;
+
 export const CaptureLogoReferenceResponse = zod.object({
   "captured": zod.boolean(),
   "saved": zod.boolean(),
@@ -355,7 +369,14 @@ export const CaptureLogoReferenceResponse = zod.object({
   "crop": zod.string().nullish(),
   "width": zod.number().nullish(),
   "height": zod.number().nullish(),
-  "match_score": zod.number().nullish()
+  "match_score": zod.number().nullish(),
+  "region": zod.union([zod.object({
+  "x": zod.number().min(captureLogoReferenceResponseRegionOneXMin).max(captureLogoReferenceResponseRegionOneXMax),
+  "y": zod.number().min(captureLogoReferenceResponseRegionOneYMin).max(captureLogoReferenceResponseRegionOneYMax),
+  "w": zod.number().gt(captureLogoReferenceResponseRegionOneWExclusiveMin).max(captureLogoReferenceResponseRegionOneWMax),
+  "h": zod.number().gt(captureLogoReferenceResponseRegionOneHExclusiveMin).max(captureLogoReferenceResponseRegionOneHMax)
+}),zod.null()]).optional(),
+  "tightened": zod.boolean().default(captureLogoReferenceResponseTightenedDefault)
 })
 
 

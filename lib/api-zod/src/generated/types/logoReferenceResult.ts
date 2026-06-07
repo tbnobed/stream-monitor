@@ -5,6 +5,7 @@
  * OTT Stream Monitor API
  * OpenAPI spec version: 0.1.0
  */
+import type { LogoRegion } from './logoRegion';
 
 export interface LogoReferenceResult {
   captured: boolean;
@@ -21,4 +22,6 @@ export interface LogoReferenceResult {
   height?: number | null;
   /** @nullable */
   match_score?: number | null;
+  region?: LogoRegion | null;
+  tightened?: boolean;
 }

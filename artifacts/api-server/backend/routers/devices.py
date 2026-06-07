@@ -5,7 +5,7 @@ from database import get_db
 from models import Device, Incident, CheckResult, Setting
 from schemas import (
     DeviceInput, DeviceUpdate, DeviceOut, ItemStats, CheckResultOut,
-    LogoReferenceRequest, LogoReferenceResult,
+    LogoReferenceRequest, LogoReferenceResult, LogoRegion,
 )
 from services.remote import remote_info
 from services import logo as logo_svc
@@ -88,15 +88,19 @@ async def capture_logo_reference(
     s = db.query(Setting).filter(Setting.key == "srs_whep_base_url").first()
     whep_base = s.value if s else "http://cdn1.obedtv.live:2023"
 
-    frame = await logo_svc.grab_video_frame(
+    # Grab several time-spaced frames from one connection: the latest is the
+    # preview snapshot, and the whole set drives auto-tighten on save (the logo
+    # is static while the background moves, so it needs frames apart in time).
+    frames = await logo_svc.grab_frames_spread(
         whep_base, device.srs_app, device.srs_stream_key
     )
-    if frame is None:
+    if not frames:
         return LogoReferenceResult(
             captured=False,
             message="No video frames received from the stream — is it live?",
         )
 
+    frame = frames[-1]
     h, w = frame.shape[:2]
     region = {"x": body.region.x, "y": body.region.y, "w": body.region.w, "h": body.region.h}
 
@@ -118,9 +122,23 @@ async def capture_logo_reference(
         )
 
     saved = False
+    tightened = False
+    stored_region = region
     if body.save and gray_crop.size:
-        device.logo_template = logo_svc.build_template_b64(gray_crop)
-        device.logo_region = region
+        # Server self-corrects a loose/offset box: localize the logo within (and
+        # slightly around) the drawn box across the time-spaced frames, then store
+        # THAT tight region + its template. Falls back to the drawn box if no
+        # confident logo is found, so a save never makes detection worse.
+        grays = [logo_svc.rgb_to_gray(f) for f in frames]
+        tight_region, stats = logo_svc.auto_tighten_region(grays, region)
+        tightened = bool(stats.get("tightened"))
+        stored_region = tight_region
+        # Build the stored template from the SAME (first) frame auto-tighten used
+        # as its base, so the saved reference is exactly the one its consistency
+        # score was validated against.
+        store_crop = logo_svc.crop_region(grays[0], tight_region)
+        device.logo_template = logo_svc.build_template_b64(store_crop)
+        device.logo_region = tight_region
         device.logo_check_enabled = True
         if body.threshold is not None:
             device.logo_match_threshold = body.threshold
@@ -136,6 +154,8 @@ async def capture_logo_reference(
         height=h,
         saved=saved,
         match_score=match_score,
+        region=LogoRegion(**stored_region) if saved else None,
+        tightened=tightened,
     )
 
 
