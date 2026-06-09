@@ -59,7 +59,7 @@ services:
       OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET:-}
       OIDC_DISCOVERY_URL: ${OIDC_DISCOVERY_URL:-}
       OIDC_REDIRECT_URI: ${OIDC_REDIRECT_URI:-}
-      OIDC_DISPLAY_NAME: ${OIDC_DISPLAY_NAME:-Authentik}
+      OIDC_DISPLAY_NAME: ${OIDC_DISPLAY_NAME:-SSO}
       # --- Email alerts (SendGrid) ---
       # Email alerts turn on only when SENDGRID_API_KEY and ALERT_FROM_EMAIL are
       # both set. Recipients are configured in-app (Settings -> alert_email_recipients).

@@ -88,7 +88,7 @@ OIDC_CLIENT_ID=
 OIDC_CLIENT_SECRET=
 OIDC_DISCOVERY_URL=
 OIDC_REDIRECT_URI=
-OIDC_DISPLAY_NAME=Authentik
+OIDC_DISPLAY_NAME=SSO
 EOF
   chmod 600 .env
   echo "    Wrote deploy/.env (keep this file private)."

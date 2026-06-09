@@ -60,7 +60,7 @@ class Settings(BaseSettings):
     # Optional fixed callback URL (recommended behind a reverse proxy), e.g.
     # http://noc.example.com/api/auth/sso/callback
     oidc_redirect_uri: str = os.environ.get("OIDC_REDIRECT_URI", "")
-    oidc_display_name: str = os.environ.get("OIDC_DISPLAY_NAME", "Authentik")
+    oidc_display_name: str = os.environ.get("OIDC_DISPLAY_NAME", "SSO")
 
     # First-run admin bootstrap (only used when there are zero users).
     initial_admin_username: str = os.environ.get("INITIAL_ADMIN_USERNAME", "admin")
