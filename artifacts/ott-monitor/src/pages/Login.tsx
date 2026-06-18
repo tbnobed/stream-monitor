@@ -41,15 +41,56 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex items-center justify-center px-4 font-sans">
-      <div className="w-full max-w-sm">
-        <div className="mb-8 flex flex-col items-center text-center">
-          <img
-            src={`${import.meta.env.BASE_URL}pulse-icon.png`}
-            alt="Pulse"
-            className="mb-3 h-14 w-14 rounded-xl"
+    <div className="relative min-h-screen overflow-hidden bg-background text-foreground flex items-center justify-center px-4 font-sans">
+      {/* Distinctive on-brand background */}
+      <div aria-hidden className="pointer-events-none absolute inset-0">
+        {/* teal radial glows */}
+        <div className="absolute left-1/2 top-[-20rem] h-[55rem] w-[55rem] -translate-x-1/2 rounded-full bg-primary/20 blur-[140px]" />
+        <div className="absolute bottom-[-18rem] right-[-12rem] h-[38rem] w-[38rem] rounded-full bg-primary/10 blur-[140px]" />
+        {/* technical grid */}
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage:
+              "linear-gradient(to right, hsl(190 90% 50% / 0.06) 1px, transparent 1px), linear-gradient(to bottom, hsl(190 90% 50% / 0.06) 1px, transparent 1px)",
+            backgroundSize: "48px 48px",
+            maskImage:
+              "radial-gradient(ellipse 80% 60% at 50% 40%, black, transparent 75%)",
+            WebkitMaskImage:
+              "radial-gradient(ellipse 80% 60% at 50% 40%, black, transparent 75%)",
+          }}
+        />
+        {/* animated pulse waveform */}
+        <svg
+          className="absolute left-0 top-1/2 w-full -translate-y-1/2 opacity-20"
+          viewBox="0 0 1200 200"
+          preserveAspectRatio="none"
+          fill="none"
+        >
+          <path
+            d="M0 100 H320 l24 -64 l30 128 l28 -150 l26 150 l24 -64 H1200"
+            stroke="hsl(190 90% 50%)"
+            strokeWidth="2"
+            strokeLinejoin="round"
+            strokeLinecap="round"
+            className="pulse-trace"
           />
-          <h1 className="text-xl font-bold tracking-tight text-primary">
+        </svg>
+        {/* bottom vignette */}
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-background" />
+      </div>
+
+      <div className="relative z-10 w-full max-w-sm">
+        <div className="mb-8 flex flex-col items-center text-center">
+          <div className="relative mb-4">
+            <div className="absolute inset-0 -z-10 rounded-3xl bg-primary/30 blur-2xl" />
+            <img
+              src={`${import.meta.env.BASE_URL}pulse-icon.png`}
+              alt="Pulse"
+              className="h-28 w-28 rounded-2xl shadow-2xl shadow-primary/20"
+            />
+          </div>
+          <h1 className="text-2xl font-bold tracking-tight text-primary">
             Pulse
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">

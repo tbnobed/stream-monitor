@@ -122,3 +122,29 @@
     @apply font-sans antialiased bg-background text-foreground;
   }
 }
+
+@keyframes pulse-trace-draw {
+  0% {
+    stroke-dashoffset: 2400;
+    opacity: 0.05;
+  }
+  45% {
+    opacity: 0.4;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 0.05;
+  }
+}
+
+.pulse-trace {
+  stroke-dasharray: 2400;
+  animation: pulse-trace-draw 7s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulse-trace {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+}
