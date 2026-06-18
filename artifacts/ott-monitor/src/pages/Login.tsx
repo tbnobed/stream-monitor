@@ -5,7 +5,7 @@ import {
   useLogin,
   getGetCurrentUserQueryKey,
 } from "@workspace/api-client-react";
-import { Radio, LogIn, Loader2 } from "lucide-react";
+import { LogIn, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -44,11 +44,13 @@ export default function Login() {
     <div className="min-h-screen bg-background text-foreground flex items-center justify-center px-4 font-sans">
       <div className="w-full max-w-sm">
         <div className="mb-8 flex flex-col items-center text-center">
-          <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
-            <Radio className="h-6 w-6 text-primary" />
-          </div>
-          <h1 className="text-xl font-bold uppercase tracking-tight text-primary">
-            NOC Monitor
+          <img
+            src={`${import.meta.env.BASE_URL}pulse-icon.png`}
+            alt="Pulse"
+            className="mb-3 h-14 w-14 rounded-xl"
+          />
+          <h1 className="text-xl font-bold tracking-tight text-primary">
+            Pulse
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Sign in to access the monitoring wall

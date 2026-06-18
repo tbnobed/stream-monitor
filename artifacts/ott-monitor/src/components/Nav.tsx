@@ -14,7 +14,6 @@ import {
   PlaySquare,
   AlertTriangle,
   Settings,
-  Radio,
   Users as UsersIcon,
   LogOut,
   ShieldCheck,
@@ -55,8 +54,12 @@ export function Nav() {
     <nav className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-14 items-center px-4 max-w-full">
         <div className="mr-6 flex items-center space-x-2">
-          <Radio className="h-5 w-5 text-primary" />
-          <span className="font-bold tracking-tight text-primary uppercase">NOC Monitor</span>
+          <img
+            src={`${import.meta.env.BASE_URL}pulse-icon.png`}
+            alt="Pulse"
+            className="h-6 w-6 rounded"
+          />
+          <span className="font-bold tracking-tight text-primary">Pulse</span>
         </div>
         <div className="flex flex-1 items-center space-x-6 text-sm font-medium">
           {links.map(({ href, label, icon: Icon }) => (
